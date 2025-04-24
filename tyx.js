@@ -40,7 +40,6 @@ function main() {
 			});
 		});
 	};
-
 	tyx.functions.homeHero = function () {
 		const videoElem = document.querySelector(".home-hero_video");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
@@ -127,7 +126,6 @@ function main() {
 			}
 		);
 	};
-
 	tyx.functions.counter = function () {
 		// create a custom effect for the counter
 		gsap.registerEffect({
@@ -215,9 +213,40 @@ function main() {
 			},
 		});
 	};
+	tyx.functions.changeIntroColors = function () {
+		const tl = gsap.timeline({
+			scrollTrigger: {
+				trigger: ".s-home-intro",
+				start: "center center",
+				end: "bottom-=400 top",
+				toggleActions: "play none none reverse",
+			},
+			defaults: {
+				duration: 0.35,
+				ease: "power1.inOut",
+			},
+		});
+
+		tl.to(
+			[".s-home-intro, .s-home-stats"],
+			{
+				color: "white",
+				backgroundColor: "black",
+			},
+			0
+		);
+		tl.to(
+			[".label"],
+			{
+				color: "white",
+			},
+			0
+		);
+	};
 
 	// Initialize the homeHero function
 	tyx.functions.homeHero();
+	tyx.functions.changeIntroColors();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
