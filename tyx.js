@@ -10,6 +10,7 @@ function main() {
 		const videoElem = document.querySelector(".home-hero_video");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
 		const scrollTargetMbl = document.querySelector(".scroll-target-mbl");
+		const sizeTargetDsk = document.querySelector(".size-target-dsk");
 		if (!videoElem || !scrollTargetDsk || !scrollTargetMbl) {
 			console.error("[Hero Animation] Missing required elements.");
 			return;
@@ -33,7 +34,8 @@ function main() {
 				const scrollTarget = isDesktop ? scrollTargetDsk : scrollTargetMbl;
 
 				const windowWidth = window.innerWidth;
-				const desiredWidth = scrollTarget.offsetWidth / 2 - 32;
+				// const desiredWidth = scrollTarget.offsetWidth / 2 - 32;
+				const desiredWidth = sizeTargetDsk.offsetWidth;
 
 				const scaleFactor =
 					isDesktop && windowWidth >= desiredWidth ? desiredWidth / windowWidth : 0.5;
