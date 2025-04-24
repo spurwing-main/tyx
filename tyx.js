@@ -30,13 +30,14 @@ function main() {
 			},
 			(context) => {
 				let { isDesktop, isMobile } = context.conditions;
+				const scrollTarget = isDesktop ? scrollTargetDsk : scrollTargetMbl;
 
 				const windowWidth = window.innerWidth;
-				const desiredWidth = 300;
+				const desiredWidth = scrollTarget.offsetWidth / 2 - 32;
+
 				const scaleFactor =
 					isDesktop && windowWidth >= desiredWidth ? desiredWidth / windowWidth : 0.5;
 
-				const scrollTarget = isDesktop ? scrollTargetDsk : scrollTargetMbl;
 				const transformOriginX = (scrollTargetDsk.offsetLeft / windowWidth) * 100;
 				if (isDesktop) {
 					gsap.set(videoElem, {
