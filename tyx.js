@@ -128,6 +128,94 @@ function main() {
 		);
 	};
 
+	tyx.functions.counter = function () {
+		// create a custom effect for the counter
+		gsap.registerEffect({
+			name: "counter",
+			extendTimeline: true,
+			defaults: {
+				end: 0,
+				duration: 0.5,
+				ease: "power1",
+				increment: 1,
+			},
+			effect: (targets, config) => {
+				let tl = gsap.timeline();
+				let num = targets[0].innerText.replace(/\,/g, "");
+				targets[0].innerText = num;
+
+				tl.to(
+					targets,
+					{
+						duration: config.duration,
+						innerText: config.end,
+						//snap:{innerText:config.increment},
+						modifiers: {
+							innerText: function (innerText) {
+								return gsap.utils
+									.snap(config.increment, innerText)
+									.toString()
+									.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+							},
+						},
+						ease: config.ease,
+					},
+					0
+				);
+
+				return tl;
+			},
+		});
+
+		gsap.set(".stat", { opacity: 0, y: 20 });
+
+		ScrollTrigger.batch(".stat", {
+			// how early before entering should the trigger fire
+			start: "top 80%",
+			// max items to animate at once
+			batchMax: 5,
+			// small delay window to group items
+			interval: 0.1,
+
+			onEnter(batch) {
+				batch.forEach((stat, i) => {
+					const counterEl = stat.querySelector(".anim-count");
+					if (!counterEl) return;
+
+					const end = parseInt(counterEl.dataset.endValue, 10) || 0;
+					const inc = parseInt(counterEl.dataset.increment, 10) || 1;
+					const dur = parseFloat(counterEl.dataset.duration) || 1;
+
+					// reset for A11y
+					counterEl.innerText = "0";
+					counterEl.setAttribute("aria-live", "polite");
+					counterEl.setAttribute("role", "status");
+
+					// build a little timeline for this stat:
+					gsap
+						.timeline({
+							delay: i * 0.15, // match your fade-stagger
+						})
+						// 1) fade it in
+						.to(stat, {
+							opacity: 1,
+							y: 0,
+							duration: 0.2,
+							ease: "power1.out",
+						})
+						// 2) once that's done, fire your counter
+						.call(() => {
+							gsap.effects.counter(counterEl, {
+								end,
+								increment: inc,
+								duration: dur,
+							});
+						});
+				});
+			},
+		});
+	};
+
 	// Initialize the homeHero function
 	tyx.functions.homeHero();
 
@@ -135,5 +223,6 @@ function main() {
 	document.fonts.ready.then(function () {
 		gsap.set(".anim-in", { autoAlpha: 1 });
 		tyx.functions.randomText();
+		tyx.functions.counter();
 	});
 }
