@@ -1,9 +1,44 @@
 function main() {
-	gsap.registerPlugin(ScrollTrigger);
+	gsap.registerPlugin(SplitText, ScrollTrigger);
 	tyx.breakpoints = {
 		dsk: 992,
 		tab: 768,
 		mbl: 480,
+	};
+
+	tyx.functions.randomText = function () {
+		document.querySelectorAll(".home-hero_header h1").forEach((el) => {
+			// Split text into char spans
+			const split = new SplitText(el, { types: "words, chars" });
+			// Ensure visibility
+			gsap.set(el, { opacity: 1 });
+
+			// Timeline plays on enter, reverses on leave back, and reverts splits on complete or reverse complete
+			const tl = gsap.timeline({
+				paused: true,
+				onComplete: () => split.revert(),
+				onReverseComplete: () => split.revert(),
+			});
+
+			tl.from(split.chars, {
+				opacity: 0,
+				duration: 0.05,
+				ease: "power1.out",
+				stagger: { amount: 0.4, from: "random" },
+			});
+
+			// Scroll-triggered playback
+			ScrollTrigger.create({
+				trigger: el,
+				start: "top 90%",
+				onEnter: () => tl.play(),
+			});
+			ScrollTrigger.create({
+				trigger: el,
+				start: "top bottom",
+				// onLeaveBack: () => tl.reverse()
+			});
+		});
 	};
 
 	tyx.functions.homeHero = function () {
@@ -95,4 +130,10 @@ function main() {
 
 	// Initialize the homeHero function
 	tyx.functions.homeHero();
+
+	// Initialize the randomText function after fonts are loaded
+	document.fonts.ready.then(function () {
+		gsap.set(".anim-in", { autoAlpha: 1 });
+		tyx.functions.randomText();
+	});
 }
