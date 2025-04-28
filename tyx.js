@@ -243,10 +243,23 @@ function main() {
 			0
 		);
 	};
+	tyx.functions.playVideosOnHover = function () {
+		const missionCards = document.querySelectorAll(".home-mission-card");
+		missionCards.forEach((missionCard) => {
+			const videoElem = missionCard.querySelector("video");
+			if (!videoElem) return;
+			missionCard.addEventListener("mouseenter", function () {
+				videoElem.play();
+			});
+			missionCard.addEventListener("mouseleave", function () {
+				videoElem.pause();
+			});
+		});
+	};
 
-	// Initialize the homeHero function
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
+	tyx.functions.playVideosOnHover();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
