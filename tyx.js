@@ -226,12 +226,12 @@ function main() {
 				ease: "power1.inOut",
 			},
 		});
-
 		tl.to(
 			[".s-home-intro, .s-home-stats"],
 			{
 				color: "white",
 				backgroundColor: "black",
+				"--_theme---body": "white",
 			},
 			0
 		);
