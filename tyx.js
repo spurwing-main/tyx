@@ -244,22 +244,168 @@ function main() {
 		);
 	};
 	tyx.functions.playVideosOnHover = function () {
-		const missionCards = document.querySelectorAll(".home-mission-card");
-		missionCards.forEach((missionCard) => {
-			const videoElem = missionCard.querySelector("video");
-			if (!videoElem) return;
-			missionCard.addEventListener("mouseenter", function () {
-				videoElem.play();
+		const triggers = document.querySelectorAll(".video-hover-trigger");
+		triggers.forEach((trigger) => {
+			const video = trigger.querySelector("video");
+			if (!video) return;
+
+			var isPlaying = false;
+
+			video.onplaying = function () {
+				isPlaying = true;
+				console.log("change to playing");
+			};
+			video.onpause = function () {
+				isPlaying = false;
+				console.log("change to pause");
+			};
+			trigger.addEventListener("mouseenter", function () {
+				playVid(video, isPlaying);
 			});
-			missionCard.addEventListener("mouseleave", function () {
-				videoElem.pause();
+			trigger.addEventListener("mouseleave", function () {
+				pauseVid(video, isPlaying);
+			});
+		});
+
+		// Play video function
+		async function playVid(video, isPlaying) {
+			if (video.paused && !isPlaying) {
+				console.log("play");
+				return video.play();
+			}
+		}
+
+		// Pause video function
+		function pauseVid(video, isPlaying) {
+			if (!video.paused && isPlaying) {
+				console.log("pause");
+				video.pause();
+			}
+		}
+	};
+
+	tyx.functions.magicCard = function () {
+		const cards = document.querySelectorAll(".magic-card");
+		const className = "w-variant-c5bd8cb1-745d-6422-4579-86188fba0502";
+
+		function toggleClass(els, myClass) {
+			els.forEach((el) => {
+				if (el.classList.contains(myClass)) {
+					el.classList.remove(myClass);
+				} else {
+					el.classList.add(myClass);
+				}
+			});
+		}
+
+		cards.forEach((card) => {
+			const btn = card.querySelector(".magic-card_btn");
+			const content = card.querySelector(".magic-card_content");
+			const content_1 = card.querySelector(".magic-card_content-1");
+			const content_2 = card.querySelector(".magic-card_content-2");
+			const content_3 = card.querySelector(".magic-card_content-3");
+			if (!btn || !content) return;
+
+			// const tl = gsap.timeline({
+			// 	paused: true,
+			// });
+
+			function doFlip() {
+				const state = Flip.getState([card, content, content_1, content_2, content_3]);
+
+				// make styling change
+				toggleClass([card, content, content_1, content_2, content_3], className);
+
+				Flip.from(state, { duration: 1, ease: "power1.inOut" });
+
+				card.setAttribute("aria-expanded", "true");
+			}
+
+			btn.addEventListener("click", function () {
+				if (card.getAttribute("aria-expanded") !== "true") {
+					doFlip();
+				} else {
+					// Reset the card to its original state
+					toggleClass([card, content, content_1, content_2, content_3], className);
+					card.setAttribute("aria-expanded", "false");
+				}
 			});
 		});
 	};
 
+	tyx.functions.serviceCard = function () {
+		let mm = gsap.matchMedia();
+
+		mm.add("(min-width: 768px)", () => {
+			const cards = document.querySelectorAll(".home-service-card");
+			cards.forEach((card) => {
+				const bottom = card.querySelector(".home-service-card_bottom");
+				let tl = gsap.timeline({
+					paused: true,
+					reversed: true,
+				});
+				tl.to(bottom, { height: "auto", duration: 0.3 });
+				gsap.set(bottom, { height: 0 });
+
+				card.addEventListener("mouseenter", function () {
+					toggle();
+				});
+				card.addEventListener("mouseleave", function () {
+					toggle();
+				});
+
+				function toggle() {
+					tl.reversed() ? tl.play() : tl.reverse();
+				}
+			});
+
+			return () => {
+				// reset height
+				gsap.set(".home-service-card_bottom", { height: auto });
+			};
+		});
+
+		var splide = new Splide(".s-home-services .splide", {
+			type: "slide",
+			mediaQuery: "min",
+			// autoWidth: true,
+			//width: "16rem",
+			autoplay: false,
+			arrows: true,
+			trimSpace: "move",
+			pagination: false,
+			breakpoints: {
+				768: {
+					destroy: true,
+				},
+			},
+		});
+		var bar = splide.root.querySelector(".progress_bar");
+		// Updates the bar width whenever the carousel moves:
+		splide.on("mounted move", function () {
+			var end = splide.Components.Controller.getEnd() + 1;
+			var rate = Math.min((splide.index + 1) / end, 1);
+			bar.style.width = String(100 * rate) + "%";
+		});
+		splide.mount();
+	};
+
+	tyx.functions.chaosMarquee = function () {
+		// duplicate marquee content element
+		const marqueeContent = document.querySelector(".chaos-marquee_content");
+		if (!marqueeContent) return;
+		const marqueeContentClone = marqueeContent.cloneNode(true);
+		marqueeContent.parentNode.appendChild(marqueeContentClone);
+	};
+
+	gsap.registerPlugin(Flip);
+
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.playVideosOnHover();
+	// tyx.functions.magicCard();
+	tyx.functions.serviceCard();
+	tyx.functions.chaosMarquee();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
