@@ -361,7 +361,7 @@ function main() {
 
 			return () => {
 				// reset height
-				gsap.set(".home-service-card_bottom", { height: auto });
+				gsap.set(".home-service-card_bottom", { height: "auto" });
 			};
 		});
 
