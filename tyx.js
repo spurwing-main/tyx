@@ -1,5 +1,5 @@
 function main() {
-	gsap.registerPlugin(SplitText, ScrollTrigger);
+	gsap.registerPlugin(SplitText, ScrollTrigger, Flip);
 	tyx.breakpoints = {
 		dsk: 992,
 		tab: 768,
@@ -492,7 +492,125 @@ function main() {
 		});
 	};
 
-	gsap.registerPlugin(Flip);
+	tyx.functions.textAnim = function () {
+		const fromColor = "#696969";
+		const toColor = "#ffffff";
+
+		document.querySelectorAll(".text-anim").forEach((el) => {
+			const split = new SplitText(el, {
+				type: "words, chars",
+				tag: "span",
+			});
+
+			gsap.set(el, { opacity: 1 });
+
+			gsap
+				.timeline({
+					scrollTrigger: {
+						trigger: el,
+						start: "top 75%",
+						end: "top top",
+						scrub: 1,
+					},
+				})
+				.fromTo(
+					split.words,
+					{ color: fromColor },
+					{
+						color: toColor,
+						duration: 4,
+						ease: "cubic.out",
+						stagger: { each: 0.4 },
+					}
+				);
+		});
+	};
+
+	tyx.functions.swiped5050 = function () {
+		const sections = document.querySelectorAll(".s-swiped-5050");
+		if (!sections) return;
+		const mediaElements = document.querySelectorAll(".swiped-5050_media");
+		const mediaClass = ".swiped-5050_media";
+
+		const firstSection = sections[0];
+		const firstMedia = mediaElements[0];
+
+		const lastSection = sections[sections.length - 1];
+		const lastMedia = mediaElements[mediaElements.length - 1];
+
+		sections.forEach((section, i) => {
+			const media = section.querySelector(mediaClass);
+
+			// Pin the media element
+			ScrollTrigger.create({
+				trigger: media,
+				start: "center center",
+				endTrigger: lastMedia,
+				end: "center center",
+				pin: media,
+				pinSpacing: false,
+			});
+
+			// // Transition to next image (if one exists)
+			// const next = sections[i + 1];
+			// if (next) {
+			// 	const nextMedia = next.querySelector(mediaClass);
+			// 	gsap.fromTo(
+			// 		nextMedia,
+			// 		{
+			// 			clipPath: "inset(100% 0% 0% 0%)",
+			// 		},
+			// 		{
+			// 			clipPath: "inset(0% 0% 0% 0%)",
+			// 			scrollTrigger: {
+			// 				trigger: next,
+			// 				start: "top bottom",
+			// 				end: "top center",
+			// 				scrub: true,
+			// 			},
+			// 		}
+			// 	);
+			// }
+		});
+	};
+
+	tyx.functions.serviceHero = function () {
+		const sections = document.querySelectorAll(".s-service-hero");
+		if (!sections) return;
+
+		sections.forEach((section) => {
+			const heading = section.querySelector(".service-hero_heading");
+			const bg = section.querySelector(".service-hero_bg");
+
+			gsap.set(heading, { yPercent: 200 });
+
+			const tl = gsap.timeline({});
+			tl.to(
+				heading,
+				{
+					yPercent: 0,
+					duration: 1.5,
+					ease: "power2.out",
+					immediateRender: false,
+				},
+				0.5
+			);
+
+			const bg_tl = gsap.timeline({
+				scrollTrigger: {
+					trigger: section,
+					start: "bottom 80%",
+					end: "bottom top",
+					scrub: true,
+				},
+			});
+			// fade out bg
+			bg_tl.to(bg, {
+				opacity: 0,
+				ease: "power2.out",
+			});
+		});
+	};
 
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
@@ -503,6 +621,9 @@ function main() {
 	tyx.functions.process();
 	tyx.functions.parallax();
 	tyx.functions.benefits();
+	tyx.functions.textAnim();
+	tyx.functions.swiped5050();
+	tyx.functions.serviceHero();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
