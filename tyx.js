@@ -334,6 +334,9 @@ function main() {
 	};
 
 	tyx.functions.serviceCard = function () {
+		var check = document.querySelector(".home-service-card");
+		if (!check) return;
+
 		let mm = gsap.matchMedia();
 
 		mm.add("(min-width: 768px)", () => {
@@ -381,12 +384,39 @@ function main() {
 			},
 		});
 		var bar = splide.root.querySelector(".progress_bar");
-		// Updates the bar width whenever the carousel moves:
-		splide.on("mounted move", function () {
-			var end = splide.Components.Controller.getEnd() + 1;
-			var rate = Math.min((splide.index + 1) / end, 1);
-			bar.style.width = String(100 * rate) + "%";
+		if (!bar) {
+			splide.mount();
+			return;
+		} else {
+			// Updates the bar width whenever the carousel moves:
+			splide.on("mounted move", function () {
+				var end = splide.Components.Controller.getEnd() + 1;
+				var rate = Math.min((splide.index + 1) / end, 1);
+				bar.style.width = String(100 * rate) + "%";
+			});
+			splide.mount();
+		}
+	};
+
+	tyx.functions.benefits = function () {
+		var check = document.querySelector(".benefit-card");
+		if (!check) return;
+
+		var splide = new Splide(".s-benefits .splide", {
+			type: "slide",
+			mediaQuery: "min",
+			autoplay: false,
+			autoWidth: true,
+			arrows: false,
+			trimSpace: "move",
+			pagination: false,
+			breakpoints: {
+				768: {
+					destroy: true,
+				},
+			},
 		});
+
 		splide.mount();
 	};
 
@@ -398,6 +428,70 @@ function main() {
 		marqueeContent.parentNode.appendChild(marqueeContentClone);
 	};
 
+	tyx.functions.process = function () {
+		const sections = document.querySelectorAll(".s-process");
+		if (!sections) return;
+
+		sections.forEach((section) => {
+			const steps = section.querySelectorAll(".process-step");
+			if (!steps) return;
+
+			// Set initial state
+			gsap.set(steps, { yPercent: 200, autoAlpha: 0 });
+
+			// Create a timeline for the animation
+			const tl = gsap.timeline({
+				scrollTrigger: {
+					trigger: section,
+					start: "top 60%",
+					end: "bottom 80%",
+					scrub: true,
+				},
+			});
+
+			tl.to(steps, {
+				yPercent: 0,
+				autoAlpha: 1,
+				stagger: 0.3,
+				duration: 0.3,
+				ease: "power2.out",
+			});
+		});
+	};
+
+	tyx.functions.parallax = function () {
+		// based on https://codepen.io/GreenSock/pen/BarmbXq
+		const parallaxSections = document.querySelectorAll(".s-big-img");
+		if (!parallaxSections) return;
+
+		parallaxSections.forEach((section) => {
+			const image = section.querySelector(".big-img_media");
+			getRatio = (el) => window.innerHeight / (window.innerHeight + el.offsetHeight);
+
+			let tl = gsap.timeline({
+				scrollTrigger: {
+					trigger: section,
+					start: "top bottom",
+					end: "bottom top",
+					scrub: true,
+					pinSpacing: false,
+					invalidateOnRefresh: true,
+				},
+			});
+
+			tl.fromTo(
+				image,
+				{
+					y: () => -window.innerHeight * getRatio(section),
+				},
+				{
+					y: () => window.innerHeight * (1 - getRatio(section)),
+					ease: "none",
+				}
+			);
+		});
+	};
+
 	gsap.registerPlugin(Flip);
 
 	tyx.functions.homeHero();
@@ -406,6 +500,9 @@ function main() {
 	// tyx.functions.magicCard();
 	tyx.functions.serviceCard();
 	tyx.functions.chaosMarquee();
+	tyx.functions.process();
+	tyx.functions.parallax();
+	tyx.functions.benefits();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
