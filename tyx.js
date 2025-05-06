@@ -89,7 +89,7 @@ function main() {
 							end: "center center",
 							endTrigger: scrollTarget,
 							scrub: true,
-							markers: true,
+							// markers: true,
 							pin: videoElem,
 							pinSpacing: true,
 							onUpdate: function (self) {
