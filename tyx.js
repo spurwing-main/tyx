@@ -612,6 +612,99 @@ function main() {
 		});
 	};
 
+	tyx.functions.visualiser = function () {
+		const container = document.querySelector(".visualiser");
+		if (!container) return;
+		let bars = [];
+		let simplex = new SimplexNoise();
+		let time = 0;
+		const barCountDsk = 150;
+		const barCountMbl = 50;
+		let mouseX = 0;
+
+		// Animate bars
+		function startAnimation(barCount) {
+			let time = 0;
+
+			function frame() {
+				time += 0.01;
+				const rect = container.getBoundingClientRect();
+
+				bars.forEach((bar, i) => {
+					const barX = (i / barCount) * rect.width;
+					const distance = Math.abs(barX - mouseX);
+					const proximity = Math.max(0, 1 - distance / 150); // 150px falloff
+
+					const noise = simplex.noise2D(i * 0.1, time);
+					let scale = gsap.utils.mapRange(-1, 1, 0.2, 1, noise);
+
+					// Apply proximity boost
+					scale += proximity * 0.25; // up to +0.5 added when cursor is near
+
+					gsap.to(bar, {
+						scaleY: scale,
+						duration: 0.2,
+						ease: "power2.out",
+					});
+				});
+
+				requestAnimationFrame(frame);
+			}
+
+			frame();
+		}
+
+		// create bars
+		function createBars(barCount) {
+			container.innerHTML = ""; // move this here to ensure reset
+			bars = []; // reinitialize
+			for (let i = 0; i < barCount; i++) {
+				const bar = document.createElement("div");
+				bar.classList.add("bar");
+				container.appendChild(bar);
+				bars.push(bar);
+			}
+		}
+
+		function cleanUp() {
+			bars.length = 0; // Clear the bars array
+			//kill tweens
+			gsap.killTweensOf(bars);
+		}
+
+		let mm = gsap.matchMedia();
+
+		mm.add("(min-width: 768px)", () => {
+			cleanUp();
+			// Create bars
+			createBars(barCountDsk);
+
+			container.addEventListener("mousemove", (e) => {
+				const rect = container.getBoundingClientRect();
+				mouseX = e.clientX - rect.left;
+			});
+
+			// Start animation
+			startAnimation(barCountDsk);
+
+			return () => {
+				cleanUp();
+			};
+		});
+
+		mm.add("(max-width: 767px)", () => {
+			cleanUp();
+			// Create bars
+			createBars(barCountMbl);
+			// Start animation
+			startAnimation(barCountMbl);
+
+			return () => {
+				cleanUp();
+			};
+		});
+	};
+
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.playVideosOnHover();
@@ -624,6 +717,7 @@ function main() {
 	tyx.functions.textAnim();
 	tyx.functions.swiped5050();
 	tyx.functions.serviceHero();
+	tyx.functions.visualiser();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
