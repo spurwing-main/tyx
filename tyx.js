@@ -420,6 +420,21 @@ function main() {
 		splide.mount();
 	};
 
+	tyx.functions.testimonials = function () {
+		var check = document.querySelector(".testimonial-card");
+		if (!check) return;
+
+		var splide = new Splide(".s-testimonials .splide", {
+			type: "slide",
+			autoplay: false,
+			arrows: false,
+			trimSpace: "move",
+			pagination: false,
+		});
+
+		splide.mount();
+	};
+
 	tyx.functions.chaosMarquee = function () {
 		// duplicate marquee content element
 		const marqueeContent = document.querySelector(".chaos-marquee_content");
@@ -705,6 +720,67 @@ function main() {
 		});
 	};
 
+	tyx.functions.faq = function () {
+		const faqGroups = document.querySelectorAll(".s-faq");
+		if (!faqGroups) return;
+
+		console.log("faq");
+
+		function open(array, itemObj) {
+			// Close other open items in the same group
+			array.forEach((el) => {
+				if (el !== itemObj && el.tl.reversed() === false) {
+					close(el);
+				}
+			});
+			// Open the clicked item
+			itemObj.tl.play();
+			// Set the item to be open
+			itemObj.item.classList.add("is-open");
+		}
+
+		function close(itemObj) {
+			itemObj.tl.reverse();
+			itemObj.item.classList.remove("is-open");
+		}
+
+		function toggle(array, itemObj) {
+			itemObj.tl.reversed() ? open(array, itemObj) : close(itemObj);
+		}
+
+		faqGroups.forEach((group) => {
+			const items = group.querySelectorAll(".faq-item");
+			if (!items) return;
+			let array = [];
+
+			items.forEach((item) => {
+				let itemObj = {
+					item: item,
+					header: item.querySelector(".faq-item_header"),
+					body: item.querySelector(".faq-item_body"),
+					icon: item.querySelector(".faq-item_icon"),
+				};
+
+				if (!itemObj.header || !itemObj.body) return;
+
+				itemObj.tl = gsap.timeline({
+					paused: true,
+					reversed: true,
+				});
+
+				array.push(itemObj);
+
+				itemObj.tl.to(itemObj.body, { height: "auto", duration: 0.2, ease: "none" }, 0);
+				itemObj.tl.to(itemObj.icon, { rotate: 45, duration: 0.1, ease: "power2.out" }, "<");
+				gsap.set(itemObj.body, { height: 0 });
+
+				itemObj.header.addEventListener("click", function () {
+					toggle(array, itemObj);
+				});
+			});
+		});
+	};
+
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.playVideosOnHover();
@@ -718,6 +794,8 @@ function main() {
 	tyx.functions.swiped5050();
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
+	tyx.functions.faq();
+	tyx.functions.testimonials();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
