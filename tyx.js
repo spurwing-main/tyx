@@ -425,14 +425,17 @@ function main() {
 		if (!check) return;
 
 		var splide = new Splide(".s-testimonials .splide", {
-			type: "slide",
+			type: "loop",
 			autoplay: false,
+			autoScroll: {
+				speed: 1,
+			},
 			arrows: false,
 			trimSpace: "move",
 			pagination: false,
 		});
 
-		splide.mount();
+		splide.mount(window.splide.Extensions);
 	};
 
 	tyx.functions.chaosMarquee = function () {
