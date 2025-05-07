@@ -223,7 +223,7 @@ function main() {
 				toggleActions: "play none none reverse",
 			},
 			defaults: {
-				duration: 0.35,
+				duration: 1,
 				ease: "power1.inOut",
 			},
 		});
