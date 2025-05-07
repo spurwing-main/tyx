@@ -231,7 +231,7 @@ function main() {
 			[".s-home-intro, .s-home-stats"],
 			{
 				color: "white",
-				backgroundColor: "black",
+				backgroundColor: "var(--_color---grey--dark-2)",
 				"--_theme---body": "white",
 			},
 			0
