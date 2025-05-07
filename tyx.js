@@ -465,6 +465,7 @@ function main() {
 					start: "top 60%",
 					end: "bottom 80%",
 					scrub: true,
+					once: true,
 				},
 			});
 
