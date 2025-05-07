@@ -214,6 +214,7 @@ function main() {
 		});
 	};
 	tyx.functions.changeIntroColors = function () {
+		if (!document.querySelector(".s-home-intro")) return;
 		const tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: ".s-home-intro",
@@ -236,7 +237,7 @@ function main() {
 			0
 		);
 		tl.to(
-			[".label"],
+			[".s-home-intro .label, .s-home-stats .label"],
 			{
 				color: "white",
 			},
