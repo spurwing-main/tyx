@@ -619,14 +619,15 @@ function main() {
 			const bg_tl = gsap.timeline({
 				scrollTrigger: {
 					trigger: section,
-					start: "bottom 80%",
-					end: "bottom top",
+					start: "bottom 95%",
+					end: "bottom 40%",
 					scrub: true,
+					markers: true,
 				},
 			});
 			// fade out bg
 			bg_tl.to(bg, {
-				opacity: 0,
+				opacity: 0.1,
 				ease: "power2.out",
 			});
 		});
