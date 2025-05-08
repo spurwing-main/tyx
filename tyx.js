@@ -684,51 +684,55 @@ function main() {
 		});
 	};
 
-	tyx.functions.swiped5050 = function () {
-		const sections = document.querySelectorAll(".s-swiped-5050");
-		if (!sections) return;
-		const mediaElements = document.querySelectorAll(".swiped-5050_media");
-		const mediaClass = ".swiped-5050_media";
+	tyx.functions.swiped5050_v2 = function () {
+		gsap.registerPlugin(ScrollTrigger, ExpoScaleEase);
 
-		const firstSection = sections[0];
-		const firstMedia = mediaElements[0];
+		const scaleX = 1.5;
+		const scaleY = 0.25;
+		const oppSX = 1 / scaleX;
+		const oppSY = 1 / scaleY;
+		const ease = "power2";
 
-		const lastSection = sections[sections.length - 1];
-		const lastMedia = mediaElements[mediaElements.length - 1];
+		document.querySelectorAll(".s-new-5050").forEach((section) => {
+			const items = section.querySelectorAll(".new-5050_left-item");
+			const mediaInners = section.querySelectorAll(".new-5050_media-inner");
+			const mediaWrapper = section.querySelector(".new-5050_media");
 
-		sections.forEach((section, i) => {
-			const media = section.querySelector(mediaClass);
+			items.forEach((item, i) => {
+				const nextMedia = mediaInners[i + 1];
+				if (!nextMedia) return;
 
-			// Pin the media element
-			ScrollTrigger.create({
-				trigger: media,
-				start: "center center",
-				endTrigger: lastMedia,
-				end: "center center",
-				pin: media,
-				pinSpacing: false,
+				const innerChild = nextMedia.children[0];
+				if (!innerChild) return;
+
+				// Set initial scales
+				gsap.set(nextMedia, { scaleY: 0 });
+				gsap.set(innerChild, { scaleY: Infinity });
+
+				ScrollTrigger.create({
+					trigger: item,
+					start: "top 28.125vw", // when item top reaches bottom of media
+					end: "top top", // when item top reaches top of media
+					scrub: true,
+					onUpdate: (self) => {
+						const p = self.progress;
+
+						// Outer element scales from 0 → 1
+						gsap.to(nextMedia, {
+							scaleY: gsap.utils.interpolate(0, 1, p),
+							ease: ExpoScaleEase.config(0, 1, ease),
+							overwrite: true,
+						});
+
+						// Inner child scales inversely from Infinity → 1
+						gsap.to(innerChild, {
+							scaleY: gsap.utils.interpolate(Infinity, 1, p),
+							ease: ExpoScaleEase.config(Infinity, 1, ease),
+							overwrite: true,
+						});
+					},
+				});
 			});
-
-			// // Transition to next image (if one exists)
-			// const next = sections[i + 1];
-			// if (next) {
-			// 	const nextMedia = next.querySelector(mediaClass);
-			// 	gsap.fromTo(
-			// 		nextMedia,
-			// 		{
-			// 			clipPath: "inset(100% 0% 0% 0%)",
-			// 		},
-			// 		{
-			// 			clipPath: "inset(0% 0% 0% 0%)",
-			// 			scrollTrigger: {
-			// 				trigger: next,
-			// 				start: "top bottom",
-			// 				end: "top center",
-			// 				scrub: true,
-			// 			},
-			// 		}
-			// 	);
-			// }
 		});
 	};
 
@@ -935,7 +939,7 @@ function main() {
 	tyx.functions.parallax();
 	tyx.functions.benefits();
 	tyx.functions.textAnim();
-	tyx.functions.swiped5050();
+	tyx.functions.swiped5050_v2();
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
 	tyx.functions.faq();
