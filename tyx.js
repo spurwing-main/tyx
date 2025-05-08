@@ -126,6 +126,32 @@ function main() {
 			}
 		);
 	};
+	tyx.functions.magicCarousel = function () {
+		var splide = new Splide(".s-magic-carousel .splide", {
+			type: "slide",
+			mediaQuery: "min",
+			autoWidth: true,
+			//width: "16rem",
+			autoplay: false,
+			arrows: true,
+			trimSpace: "move",
+			pagination: false,
+		});
+		var bar = splide.root.querySelector(".progress_bar");
+		if (!bar) {
+			splide.mount();
+			return;
+		} else {
+			// Updates the bar width whenever the carousel moves:
+			splide.on("mounted move", function () {
+				var end = splide.Components.Controller.getEnd() + 1;
+				var rate = Math.min((splide.index + 1) / end, 1);
+				bar.style.width = String(100 * rate) + "%";
+			});
+			splide.mount();
+		}
+	};
+
 	tyx.functions.counter = function () {
 		// create a custom effect for the counter
 		gsap.registerEffect({
@@ -802,6 +828,7 @@ function main() {
 	tyx.functions.visualiser();
 	tyx.functions.faq();
 	tyx.functions.testimonials();
+	tyx.functions.magicCarousel();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
