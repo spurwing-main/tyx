@@ -939,7 +939,7 @@ function main() {
 	tyx.functions.parallax();
 	tyx.functions.benefits();
 	tyx.functions.textAnim();
-	tyx.functions.swiped5050_v2();
+	// tyx.functions.swiped5050_v2(); // not working
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
 	tyx.functions.faq();
