@@ -648,7 +648,7 @@ function main() {
 					start: "bottom 95%",
 					end: "bottom 40%",
 					scrub: true,
-					markers: true,
+					// markers: true,
 				},
 			});
 			// fade out bg
