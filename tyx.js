@@ -448,7 +448,7 @@ function main() {
 	};
 
 	tyx.functions.testimonials = function () {
-		var check = document.querySelector(".testimonial-card");
+		var check = document.querySelector(".s-testimonials .splide");
 		if (!check) return;
 
 		var splide = new Splide(".s-testimonials .splide", {
