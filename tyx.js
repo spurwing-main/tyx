@@ -116,7 +116,7 @@ function main() {
 						ease: "power2.out",
 					})
 					.to(
-						".home-hero_content",
+						[".home-hero_content", ".home-hero_video-overlay"],
 						{
 							opacity: 0,
 							ease: "power2.out",
@@ -218,8 +218,8 @@ function main() {
 		const tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: ".s-home-intro",
-				start: "center center",
-				end: "bottom-=400 top",
+				start: "bottom 60%",
+				// end: "bottom-=400 top",
 				toggleActions: "play none none reverse",
 			},
 			defaults: {
