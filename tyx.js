@@ -127,6 +127,9 @@ function main() {
 		);
 	};
 	tyx.functions.magicCarousel = function () {
+		// check
+		var check = document.querySelector(".s-magic-carousel .splide");
+		if (!check) return;
 		var splide = new Splide(".s-magic-carousel .splide", {
 			type: "slide",
 			mediaQuery: "min",
