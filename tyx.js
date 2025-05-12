@@ -41,7 +41,7 @@ function main() {
 		});
 	};
 	tyx.functions.homeHero = function () {
-		const mediaElem = document.querySelector(".home-media");
+		const mediaElem = document.querySelector(".home-hero_media");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
 		const scrollTargetMbl = document.querySelector(".scroll-target-mbl");
 		const sizeTargetDsk = document.querySelector(".size-target-dsk");
