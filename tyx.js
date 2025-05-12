@@ -41,18 +41,18 @@ function main() {
 		});
 	};
 	tyx.functions.homeHero = function () {
-		const videoElem = document.querySelector(".home-hero_video");
+		const mediaElem = document.querySelector(".home-media");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
 		const scrollTargetMbl = document.querySelector(".scroll-target-mbl");
 		const sizeTargetDsk = document.querySelector(".size-target-dsk");
-		if (!videoElem || !scrollTargetDsk || !scrollTargetMbl) {
+		if (!mediaElem || !scrollTargetDsk || !scrollTargetMbl) {
 			console.error("[Hero Animation] Missing required elements.");
 			return;
 		}
 
 		// Clear any existing ScrollTriggers on this element
 		ScrollTrigger.getAll().forEach((trigger) => {
-			if (trigger.pin === videoElem) trigger.kill();
+			if (trigger.pin === mediaElem) trigger.kill();
 		});
 
 		const mm = gsap.matchMedia();
@@ -76,7 +76,7 @@ function main() {
 
 				const transformOriginX = (scrollTargetDsk.offsetLeft / windowWidth) * 100;
 				if (isDesktop) {
-					gsap.set(videoElem, {
+					gsap.set(mediaElem, {
 						transformOrigin: `${transformOriginX}% 50%`,
 					});
 				}
@@ -90,11 +90,11 @@ function main() {
 							endTrigger: scrollTarget,
 							scrub: true,
 							// markers: true,
-							pin: videoElem,
+							pin: mediaElem,
 							pinSpacing: true,
 							onUpdate: function (self) {
 								if (self.progress === 1) {
-									gsap.set(videoElem, {
+									gsap.set(mediaElem, {
 										position: "relative",
 										top: "auto",
 										left: "auto",
@@ -104,13 +104,13 @@ function main() {
 								}
 							},
 							onLeaveBack: function () {
-								gsap.set(videoElem, {
+								gsap.set(mediaElem, {
 									clearProps: "position, top, left, xPercent, yPercent, transformOrigin",
 								});
 							},
 						},
 					})
-					.to(videoElem, {
+					.to(mediaElem, {
 						scale: scaleFactor,
 						left: 0,
 						ease: "power2.out",
