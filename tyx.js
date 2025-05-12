@@ -368,19 +368,19 @@ function main() {
 		tl.to(
 			[".s-home-intro, .s-home-stats"],
 			{
-				color: "white",
+				// color: "white",
 				backgroundColor: "var(--_color---grey--dark-2)",
 				"--_theme---body": "white",
 			},
 			0
 		);
-		tl.to(
-			[".s-home-intro .label, .s-home-stats .label"],
-			{
-				color: "white",
-			},
-			0
-		);
+		// tl.to(
+		// 	[".s-home-intro .label, .s-home-stats .label"],
+		// 	{
+		// 		color: "white",
+		// 	},
+		// 	0
+		// );
 	};
 	tyx.functions.playVideosOnHover = function () {
 		const triggers = document.querySelectorAll(".video-hover-trigger");
@@ -557,6 +557,23 @@ function main() {
 		});
 
 		splide.mount();
+	};
+
+	tyx.functions.teamSlider = function () {
+		var check = document.querySelector(".s-team .splide");
+		if (!check) return;
+		var splide = new Splide(".s-team .splide", {
+			type: "loop",
+			autoplay: false,
+			autoScroll: {
+				speed: 1,
+			},
+			arrows: false,
+			trimSpace: "move",
+			pagination: false,
+		});
+
+		splide.mount(window.splide.Extensions);
 	};
 
 	tyx.functions.testimonials = function () {
@@ -946,6 +963,7 @@ function main() {
 	tyx.functions.testimonials();
 	tyx.functions.magicCarousel();
 	tyx.functions.largeSlider();
+	tyx.functions.teamSlider();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
