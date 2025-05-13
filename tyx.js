@@ -366,7 +366,7 @@ function main() {
 			},
 		});
 		tl.to(
-			[".s-home-intro, .s-home-stats"],
+			[".s-home-intro .section-bg-neg", ".s-home-stats"],
 			{
 				// color: "white",
 				backgroundColor: "var(--_color---grey--dark-2)",
@@ -704,49 +704,30 @@ function main() {
 	tyx.functions.swiped5050_v2 = function () {
 		gsap.registerPlugin(ScrollTrigger, ExpoScaleEase);
 
-		const scaleX = 1.5;
-		const scaleY = 0.25;
-		const oppSX = 1 / scaleX;
-		const oppSY = 1 / scaleY;
-		const ease = "power2";
-
 		document.querySelectorAll(".s-new-5050").forEach((section) => {
 			const items = section.querySelectorAll(".new-5050_left-item");
 			const mediaInners = section.querySelectorAll(".new-5050_media-inner");
 			const mediaWrapper = section.querySelector(".new-5050_media");
-
 			items.forEach((item, i) => {
-				const nextMedia = mediaInners[i + 1];
-				if (!nextMedia) return;
+				if (i === 0) {
+					return;
+				}
 
-				const innerChild = nextMedia.children[0];
-				if (!innerChild) return;
+				// get the image for the next slide
+				const mediaInner = mediaInners[i];
+				if (!mediaInner) return;
 
 				// Set initial scales
-				gsap.set(nextMedia, { scaleY: 0 });
-				gsap.set(innerChild, { scaleY: Infinity });
+				gsap.set(mediaInner, { scaleY: 0 });
 
-				ScrollTrigger.create({
-					trigger: item,
-					start: "top 28.125vw", // when item top reaches bottom of media
-					end: "top top", // when item top reaches top of media
-					scrub: true,
-					onUpdate: (self) => {
-						const p = self.progress;
-
-						// Outer element scales from 0 → 1
-						gsap.to(nextMedia, {
-							scaleY: gsap.utils.interpolate(0, 1, p),
-							ease: ExpoScaleEase.config(0, 1, ease),
-							overwrite: true,
-						});
-
-						// Inner child scales inversely from Infinity → 1
-						gsap.to(innerChild, {
-							scaleY: gsap.utils.interpolate(Infinity, 1, p),
-							ease: ExpoScaleEase.config(Infinity, 1, ease),
-							overwrite: true,
-						});
+				gsap.to(mediaInner, {
+					scaleY: 1,
+					scrollTrigger: {
+						trigger: item,
+						start: "top 70%", // when item top reaches bottom of media
+						end: "top 30%", // when item top reaches top of media
+						scrub: true,
+						markers: true,
 					},
 				});
 			});
@@ -956,7 +937,7 @@ function main() {
 	tyx.functions.parallax();
 	tyx.functions.benefits();
 	tyx.functions.textAnim();
-	// tyx.functions.swiped5050_v2(); // not working
+	tyx.functions.swiped5050_v2();
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
 	tyx.functions.faq();
