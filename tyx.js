@@ -708,35 +708,36 @@ function main() {
 		});
 	};
 
-	tyx.functions.swiped5050_v2 = function () {
+	tyx.functions.sticky5050 = function () {
 		gsap.registerPlugin(ScrollTrigger, ExpoScaleEase);
 
-		document.querySelectorAll(".s-new-5050").forEach((section) => {
-			const items = section.querySelectorAll(".new-5050_left-item");
-			const mediaInners = section.querySelectorAll(".new-5050_media-inner");
-			const mediaWrapper = section.querySelector(".new-5050_media");
+		document.querySelectorAll(".s-sticky-5050").forEach((section) => {
+			const items = section.querySelectorAll(".sticky-5050_left-item");
+			const mediaInners = section.querySelectorAll(".sticky-5050_media-inner");
+			const mediaWrapper = section.querySelector(".sticky-5050_media");
 			items.forEach((item, i) => {
 				if (i === 0) {
 					return;
 				}
 
-				// get the image for the next slide
 				const mediaInner = mediaInners[i];
 				if (!mediaInner) return;
 
 				// Set initial scales
-				gsap.set(mediaInner, { scaleY: 0 });
+				gsap.set(mediaInner, { opacity: 0 });
 
-				gsap.to(mediaInner, {
-					scaleY: 1,
+				// let animation = gsap.fromTo(mediaInner, { opacity: 0 }, { opacity: 1, duration: 0.5 });
+
+				let tl = gsap.timeline({
 					scrollTrigger: {
 						trigger: item,
 						start: "top 70%", // when item top reaches bottom of media
 						end: "top 30%", // when item top reaches top of media
-						scrub: true,
-						markers: true,
+						toggleActions: "play none reverse none",
+						// animation: animation,
 					},
 				});
+				tl.fromTo(mediaInner, { opacity: 0 }, { opacity: 1, duration: 0.5 });
 			});
 		});
 	};
@@ -944,7 +945,7 @@ function main() {
 	tyx.functions.parallax();
 	tyx.functions.benefits();
 	tyx.functions.textAnim();
-	tyx.functions.swiped5050_v2();
+	tyx.functions.sticky5050();
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
 	tyx.functions.faq();
