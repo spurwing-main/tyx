@@ -137,13 +137,19 @@ function main() {
 	tyx.functions.largeSlider = function () {
 		// Get all swiper containers
 		const components = document.querySelectorAll(".large-slider");
+		if (!components.length) return;
 
 		components.forEach((component) => {
+			const swiperEl = component.querySelector(".swiper");
+			if (!swiperEl) return;
+
 			// Get the swiper-wrapper within the current container
 			const swiperWrapper = component.querySelector(".swiper-wrapper");
+			if (!swiperWrapper) return;
 
 			// Get all swiper-slide elements within the current container
 			const swiperSlides = component.querySelectorAll(".swiper-slide");
+			if (!swiperSlides.length) return;
 
 			// Clone each swiper-slide element 4 times and append to the swiper-wrapper
 			for (let i = 0; i < 4; i++) {
@@ -153,7 +159,7 @@ function main() {
 				});
 			}
 
-			const swiper = new Swiper(component, {
+			const swiper = new Swiper(swiperEl, {
 				centeredSlides: true,
 				slideToClickedSlide: true /* click on slide to scroll to it */,
 				slidesPerView: 1,
