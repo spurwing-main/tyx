@@ -248,6 +248,76 @@ function main() {
 		});
 	};
 
+	tyx.functions.benefitsPin = function () {};
+
+	tyx.functions.benefits = function () {
+		var check = document.querySelector(".benefit-card");
+		if (!check) return;
+
+		let mm = gsap.matchMedia();
+
+		mm.add("(min-width: 768px)", () => {
+			let items = gsap.utils.toArray(".benefits_list"); // get all the lists of benefit cards
+
+			items.forEach((container, i) => {
+				const section = document.querySelector(".s-benefits");
+				if (!section) return;
+
+				let localItems = container.querySelectorAll(".benefit-card"),
+					distance = () => {
+						let lastItemBounds = localItems[localItems.length - 1].getBoundingClientRect(),
+							containerBounds = container.getBoundingClientRect();
+						return Math.max(0, lastItemBounds.right - containerBounds.right);
+					};
+				gsap.to(container, {
+					x: () => -distance(), // make sure it dynamically calculates things so that it adjusts to resizes
+					ease: "none",
+					scrollTrigger: {
+						trigger: container,
+						start: "center center",
+						pinnedContainer: section,
+						end: () => "+=" + distance(),
+						pin: section,
+						scrub: true,
+						invalidateOnRefresh: true, // will recalculate any function-based tween values on resize/refresh (making it responsive)
+					},
+				});
+			});
+
+			return () => {
+				gsap.set(items, { clearProps: "x" });
+			};
+		});
+
+		mm.add("(max-width: 767px)", () => {
+			if (!splide) {
+				var splide = new Splide(".s-benefits .splide", {
+					type: "slide",
+					mediaQuery: "min",
+					autoplay: false,
+					autoWidth: true,
+					arrows: false,
+					trimSpace: "move",
+					pagination: false,
+					breakpoints: {
+						768: {
+							destroy: true,
+						},
+					},
+				});
+
+				splide.mount();
+			}
+
+			return () => {
+				if (splide) {
+					splide.destroy();
+					splide = null;
+				}
+			};
+		});
+	};
+
 	tyx.functions.magicCarousel = function () {
 		// check
 		var check = document.querySelector(".s-magic-carousel .splide");
@@ -548,28 +618,6 @@ function main() {
 			});
 			splide.mount();
 		}
-	};
-
-	tyx.functions.benefits = function () {
-		var check = document.querySelector(".benefit-card");
-		if (!check) return;
-
-		var splide = new Splide(".s-benefits .splide", {
-			type: "slide",
-			mediaQuery: "min",
-			autoplay: false,
-			autoWidth: true,
-			arrows: false,
-			trimSpace: "move",
-			pagination: false,
-			breakpoints: {
-				768: {
-					destroy: true,
-				},
-			},
-		});
-
-		splide.mount();
 	};
 
 	tyx.functions.teamSlider = function () {
@@ -959,6 +1007,7 @@ function main() {
 	tyx.functions.magicCarousel();
 	tyx.functions.largeSlider();
 	tyx.functions.teamSlider();
+	tyx.functions.benefitsPin();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
