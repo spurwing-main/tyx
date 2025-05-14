@@ -1036,24 +1036,24 @@ function main() {
 			tl.to(
 				q(":nth-child(even)"),
 				{
-					translateX: "-60vw",
-					// duration: 0.5,
-					ease: "power2.out",
+					translateX: "-80vw",
+					duration: 1,
+					ease: "power3.out",
 				},
 				"0.05"
 			);
 			tl.to(
 				q(":nth-child(odd)"),
 				{
-					translateX: "60vw",
-					// duration: 0.5,
-					ease: "power2.out",
+					translateX: "80vw",
+					duration: 1,
+					ease: "power3.out",
 				},
 				"0.05"
 			);
 			tl.from(
 				media,
-				{ scale: 0.5, yPercent: 100, ease: "power2.out" },
+				{ scale: 0.5, yPercent: 100, duration: 1, ease: "power3.out" },
 
 				"0"
 			);
