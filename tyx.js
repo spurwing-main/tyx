@@ -248,8 +248,6 @@ function main() {
 		});
 	};
 
-	tyx.functions.benefitsPin = function () {};
-
 	tyx.functions.benefits = function () {
 		var check = document.querySelector(".benefit-card");
 		if (!check) return;
@@ -989,6 +987,79 @@ function main() {
 		});
 	};
 
+	tyx.functions.fancyHero = function () {
+		const sections = document.querySelectorAll(".hero.is-fancy");
+		if (!sections.length) return;
+
+		const scrubParam = new URLSearchParams(window.location.search).get("scrub");
+
+		let scrollTriggerOptions = {};
+
+		sections.forEach((section) => {
+			const media = section.querySelector(".media");
+			if (!media) return;
+
+			if (scrubParam === "true") {
+				// GSAP config when scrub is true
+				// Reusable scrollTrigger options
+				scrollTriggerOptions = {
+					trigger: section,
+					start: "bottom 97%",
+					end: "bottom 70%",
+					scrub: true,
+					// markers: true,
+				};
+				const timeScale = 1;
+			} else {
+				// GSAP config when scrub is false or not set
+				// Reusable scrollTrigger options
+				scrollTriggerOptions = {
+					trigger: section,
+					start: "bottom 97%",
+					scrub: false,
+					// markers: true,
+					toggleActions: "play none none reverse",
+				};
+				const timeScale = 0.25;
+			}
+
+			gsap.set(media, { transformOrigin: "50% 75%" });
+
+			let q = gsap.utils.selector(".hero_split-h1");
+			console.log(q(":nth-child(even)"));
+
+			const tl = gsap.timeline({
+				scrollTrigger: {
+					...scrollTriggerOptions,
+				},
+			});
+			tl.to(
+				q(":nth-child(even)"),
+				{
+					translateX: "-60vw",
+					// duration: 0.5,
+					ease: "power2.out",
+				},
+				"0.05"
+			);
+			tl.to(
+				q(":nth-child(odd)"),
+				{
+					translateX: "60vw",
+					// duration: 0.5,
+					ease: "power2.out",
+				},
+				"0.05"
+			);
+			tl.from(
+				media,
+				{ scale: 0.5, yPercent: 100, ease: "power2.out" },
+
+				"0"
+			);
+		});
+	};
+
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.playVideosOnHover();
@@ -1007,7 +1078,7 @@ function main() {
 	tyx.functions.magicCarousel();
 	tyx.functions.largeSlider();
 	tyx.functions.teamSlider();
-	tyx.functions.benefitsPin();
+	tyx.functions.fancyHero();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
