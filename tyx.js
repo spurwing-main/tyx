@@ -991,53 +991,35 @@ function main() {
 		const sections = document.querySelectorAll(".hero.is-fancy");
 		if (!sections.length) return;
 
-		const scrubParam = new URLSearchParams(window.location.search).get("scrub");
-
 		let scrollTriggerOptions = {};
 
 		sections.forEach((section) => {
 			const media = section.querySelector(".media");
 			if (!media) return;
 
-			if (scrubParam === "true") {
-				// GSAP config when scrub is true
-				// Reusable scrollTrigger options
-				scrollTriggerOptions = {
-					trigger: section,
-					start: "bottom 97%",
-					end: "bottom 70%",
-					scrub: true,
-					// markers: true,
-				};
-				const timeScale = 1;
-			} else {
-				// GSAP config when scrub is false or not set
-				// Reusable scrollTrigger options
-				scrollTriggerOptions = {
-					trigger: section,
-					start: "bottom 97%",
-					scrub: false,
-					// markers: true,
-					toggleActions: "play none none reverse",
-				};
-				const timeScale = 0.25;
-			}
+			scrollTriggerOptions = {
+				trigger: section,
+				start: "bottom 97%",
+				scrub: false,
+				// markers: true,
+				toggleActions: "play none none reverse",
+			};
 
 			gsap.set(media, { transformOrigin: "50% 75%" });
 
 			let q = gsap.utils.selector(".hero_split-h1");
-			console.log(q(":nth-child(even)"));
 
 			const tl = gsap.timeline({
 				scrollTrigger: {
 					...scrollTriggerOptions,
 				},
 			});
+			tl.set(media, { autoAlpha: 1 }); // CSS hides media to avoid FOUC
 			tl.to(
 				q(":nth-child(even)"),
 				{
 					translateX: "-80vw",
-					duration: 1,
+					duration: 1.5,
 					ease: "power3.out",
 				},
 				"0.05"
@@ -1046,14 +1028,23 @@ function main() {
 				q(":nth-child(odd)"),
 				{
 					translateX: "80vw",
-					duration: 1,
+					duration: 1.5,
 					ease: "power3.out",
 				},
 				"0.05"
 			);
+			tl.to(
+				".breadcrumbs",
+				{
+					autoAlpha: 0,
+					duration: 1,
+					ease: "power3.out",
+				},
+				"0"
+			);
 			tl.from(
 				media,
-				{ scale: 0.5, yPercent: 100, duration: 1, ease: "power3.out" },
+				{ scale: 0.5, yPercent: 100, duration: 1.5, ease: "power3.out" },
 
 				"0"
 			);
