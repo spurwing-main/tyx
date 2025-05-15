@@ -1116,23 +1116,30 @@ function main() {
 
 				/* OPEN on hover / focus */
 				const openPane = () => {
-					if (current === link) return; // already open
-
-					// close current
+					if (current === link) return;        // already open
+				  
+					// ----- CLOSE CURRENT -----
 					if (current) {
-						const prevPane = panels.get(current);
-						gsap.to(prevPane, { autoAlpha: 0, pointerEvents: "none", duration: 0.25 });
-						current.classList.remove("is-active", "is-open");
+					  const prevPane = panels.get(current);
+					  gsap.killTweensOf(prevPane);       // ← stop any running tween
+					  gsap.set(prevPane, {
+						autoAlpha: 0,
+						pointerEvents: "none"
+					  });
+					  current.classList.remove("is-active", "is-open");
 					}
-
-					// open new
+				  
+					// ----- OPEN NEW -----
 					const targetH = barH + pane.scrollHeight;
-					gsap.to(nav, { height: targetH, duration: 0.35 });
-					gsap.to(pane, { autoAlpha: 1, pointerEvents: "auto", duration: 0.25, delay: 0.1 });
+					gsap.set(pane, { autoAlpha: 0, pointerEvents: "auto" });
+					gsap.to(nav,  { height: targetH, duration: 0.35 });
+					gsap.to(pane, { autoAlpha: 1, duration: 0.25, delay: 0.1 });
+				  
 					link.classList.add("is-active", "is-open");
 					nav.classList.add("is-open");
 					current = link;
-				};
+				  };
+				  
 
 				const onEnter = (e) => {
 					e.preventDefault(); // for consistency with the old click handler
