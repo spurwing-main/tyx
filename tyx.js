@@ -44,7 +44,7 @@ function main() {
 				});
 			});
 
-			return () => {};
+			return () => { };
 		});
 	};
 	tyx.functions.homeHero = function () {
@@ -1051,13 +1051,11 @@ function main() {
 		});
 	};
 
+	/* ---------------------------------------------------------------------------
+ TYX Nav – hover-driven desktop, click-driven mobile
+--------------------------------------------------------------------------- */
 	tyx.functions.nav = function () {
-		/* ---------------------------------------------------------------------------
-     TYX Nav – hover-driven desktop, click-driven mobile
-     --------------------------------------------------------------------------- */
 		console.log("🌟 TYX nav script booted");
-
-		// document.addEventListener("DOMContentLoaded", () => {
 		console.log("📄 DOMContentLoaded → initialise nav");
 
 		// gsap.registerPlugin(ScrollTrigger);
@@ -1068,106 +1066,108 @@ function main() {
 			return;
 		}
 
-		/* ── 1) hide/show on scroll past 50 vh ─────────────────────────────────── */
+		/* ── 1) hide/show on scroll past 50 vh ──────────────────────────────────── */
 		ScrollTrigger.create({
 			trigger: document.body,
 			start: "top top",
 			end: "bottom bottom",
 			onUpdate(self) {
-				const y = self.scroll();
-				const past = y > window.innerHeight * 0.5;
-
+				const past = self.scroll() > window.innerHeight * 0.5;
 				nav.classList.toggle("is-past-threshold", past);
 
 				if (!past) {
-					// always show above threshold
-					nav.classList.remove("is-hidden");
+					nav.classList.remove("is-hidden");                // always show above threshold
 				} else {
-					// hide if scrolling down, show if scrolling up
-					nav.classList.toggle("is-hidden", self.direction === 1);
+					nav.classList.toggle("is-hidden", self.direction === 1); // hide ↓, show ↑
 				}
 			},
 		});
 
-		/* ── 2) desktop vs mobile panels/drawer ────────────────────────────────── */
+		/* ── 2) desktop vs mobile panels/drawer ─────────────────────────────────── */
 		const mm = gsap.matchMedia();
 
-		/* ===== DESKTOP – HOVER ===== */
+		/* ===== DESKTOP – HOVER =================================================== */
 		mm.add("(min-width: 992px)", () => {
 			console.log("🔵 Enter DESKTOP (hover version)");
 
 			const bar = nav.querySelector(".nav_bar");
 			const barH = bar ? bar.offsetHeight : 0;
-			let current = null;
+			let current = null;                                   // currently-open <a>
 
-			const panels = new Map(); // <a> → corresponding .nav_content
-			const handlers = new Map(); // <a> → listener fn (so we can clean up)
+			const panels = new Map();                           // <a> ➜ matching .nav_content
+			const handlers = new Map();                           // <a> ➜ listener fn (for cleanup)
 
-			/* prep every link/panel pair */
-			nav.querySelectorAll(".nav_link").forEach((link) => {
-				// work out panel name from data-attr or "is-XXX" helper class
-				const name =
-					link.dataset.panel || [...link.classList].find((c) => c.startsWith("is-"))?.slice(3);
-				const pane = nav.querySelector(`.nav_content.is-${name}`);
-				if (!pane) return;
-
-				panels.set(link, pane);
-				gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
-
-				/* OPEN on hover / focus */
-				const openPane = () => {
-					if (current === link) return;        // already open
-				  
-					// ----- CLOSE CURRENT -----
-					if (current) {
-					  const prevPane = panels.get(current);
-					  gsap.killTweensOf(prevPane);       // ← stop any running tween
-					  gsap.set(prevPane, {
-						autoAlpha: 0,
-						pointerEvents: "none"
-					  });
-					  current.classList.remove("is-active", "is-open");
-					}
-				  
-					// ----- OPEN NEW -----
-					const targetH = barH + pane.scrollHeight;
-					gsap.set(pane, { autoAlpha: 0, pointerEvents: "auto" });
-					gsap.to(nav,  { height: targetH, duration: 0.35 });
-					gsap.to(pane, { autoAlpha: 1, duration: 0.25, delay: 0.1 });
-				  
-					link.classList.add("is-active", "is-open");
-					nav.classList.add("is-open");
-					current = link;
-				  };
-				  
-
-				const onEnter = (e) => {
-					e.preventDefault(); // for consistency with the old click handler
-					openPane();
-				};
-
-				link.addEventListener("mouseenter", onEnter);
-				link.addEventListener("focus", onEnter); // keyboard a11y
-				handlers.set(link, onEnter);
-			});
-
-			/* CLOSE when pointer leaves the whole nav, or focus moves out */
-			const closeAll = () => {
+			/* ---------- helper to close everything -------------------------------- */
+			function closeAll() {
 				if (!current) return;
+
 				const pane = panels.get(current);
-				gsap.to(pane, { autoAlpha: 0, pointerEvents: "none", duration: 0.25 });
+				gsap.killTweensOf(pane);                          // stop any running tween
+				gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
 				gsap.to(nav, { height: barH, duration: 0.35 });
+
 				current.classList.remove("is-active", "is-open");
 				nav.classList.remove("is-open");
 				current = null;
-			};
+			}
 
+			/* ---------- set up every .nav_link ------------------------------------ */
+			nav.querySelectorAll(".nav_link").forEach((link) => {
+				/* work out panel name from data-attr or helper class */
+				const name =
+					link.dataset.panel || [...link.classList]
+						.find((c) => c.startsWith("is-"))?.slice(3);
+
+				const pane = nav.querySelector(`.nav_content.is-${name}`);
+
+				/* CASE 1 – link HAS a corresponding panel -------------------------- */
+				if (pane) {
+					panels.set(link, pane);
+					gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
+
+					const openPane = (e) => {
+						e.preventDefault();                       // keep behaviour uniform
+						if (current === link) return;            // already open
+
+						/* close previous */
+						if (current) {
+							const prevPane = panels.get(current);
+							gsap.killTweensOf(prevPane);
+							gsap.set(prevPane, { autoAlpha: 0, pointerEvents: "none" });
+							current.classList.remove("is-active", "is-open");
+						}
+
+						/* open new */
+						const targetH = barH + pane.scrollHeight;
+						gsap.set(pane, { autoAlpha: 0, pointerEvents: "auto" });
+						gsap.to(nav, { height: targetH, duration: 0.35 });
+						gsap.to(pane, { autoAlpha: 1, duration: 0.25, delay: 0.1 });
+
+						link.classList.add("is-active", "is-open");
+						nav.classList.add("is-open");
+						current = link;
+					};
+
+					link.addEventListener("mouseenter", openPane);
+					link.addEventListener("focus", openPane); // keyboard a11y
+					handlers.set(link, openPane);
+					return;                                       // ← done for a “panel” link
+				}
+
+				/* CASE 2 – link HAS NO panel → just close everything --------------- */
+				const closeOnEnter = () => closeAll();
+				link.addEventListener("mouseenter", closeOnEnter);
+				link.addEventListener("focus", closeOnEnter);
+				handlers.set(link, closeOnEnter);
+			});
+
+			/* close when pointer leaves whole nav, or focus moves out -------------- */
 			nav.addEventListener("mouseleave", closeAll);
 			nav.addEventListener("focusout", (e) => {
 				if (!nav.contains(e.relatedTarget)) closeAll();
 			});
 
-			/* cleanup */
+			/* ---------- CLEAN-UP when media query changes ------------------------- */
 			return () => {
 				console.log("🔵 Exit DESKTOP (hover version)");
 				handlers.forEach((fn, link) => {
@@ -1177,11 +1177,13 @@ function main() {
 				nav.removeEventListener("mouseleave", closeAll);
 				nav.classList.remove("is-open");
 				gsap.set(nav, { height: "auto" });
-				panels.forEach((pane) => gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" }));
+				panels.forEach((pane) =>
+					gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" })
+				);
 			};
 		});
 
-		/* ===== MOBILE – unchanged (still click-driven) ===== */
+		/* ===== MOBILE – click-driven drawer ===================================== */
 		mm.add("(max-width: 991px)", () => {
 			console.log("🟢 Enter MOBILE");
 
@@ -1202,21 +1204,16 @@ function main() {
 
 				const fullH = CSS.supports("height:100dvh") ? "100dvh" : "100vh";
 
-				gsap
-					.timeline()
+				gsap.timeline()
 					.to(icons[0], { autoAlpha: open ? 1 : 0, duration: 0.2 }, 0)
 					.to(icons[1], { autoAlpha: open ? 0 : 1, duration: 0.2 }, 0)
-					.to(
-						drawer,
-						{
-							height: open ? fullH : 0,
-							autoAlpha: open ? 1 : 0,
-							display: open ? "block" : "none",
-							duration: open ? 0.4 : 0.3,
-							ease: open ? "power2.out" : "power2.in",
-						},
-						0
-					);
+					.to(drawer, {
+						height: open ? fullH : 0,
+						autoAlpha: open ? 1 : 0,
+						display: open ? "block" : "none",
+						duration: open ? 0.4 : 0.3,
+						ease: open ? "power2.out" : "power2.in",
+					}, 0);
 			};
 			btn.addEventListener("click", onBtn);
 
@@ -1231,7 +1228,9 @@ function main() {
 				const fn = (e) => {
 					e.preventDefault();
 					const isOpen = toggle.classList.toggle("is-open");
-					toggle.querySelector(".nav_content-link-toggle")?.classList.toggle("is-open", isOpen);
+					toggle
+						.querySelector(".nav_content-link-toggle")
+						?.classList.toggle("is-open", isOpen);
 
 					gsap.to(pane, {
 						height: isOpen ? pane.scrollHeight : 0,
@@ -1245,11 +1244,13 @@ function main() {
 				accordions.push({ toggle, fn });
 			});
 
-			/* cleanup */
+			/* ---------- CLEAN-UP for mobile variant ------------------------------- */
 			return () => {
 				console.log("🟢 Exit MOBILE");
 				btn.removeEventListener("click", onBtn);
-				accordions.forEach(({ toggle, fn }) => toggle.removeEventListener("click", fn));
+				accordions.forEach(({ toggle, fn }) =>
+					toggle.removeEventListener("click", fn)
+				);
 				gsap.set(drawer, { height: 0, autoAlpha: 0 });
 				nav.classList.remove("is-open");
 				nav.style.removeProperty("height");
@@ -1257,8 +1258,8 @@ function main() {
 		});
 
 		console.log("✅ Nav script fully initialised after DOM ready");
-		// });
 	};
+
 
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
