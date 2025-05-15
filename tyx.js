@@ -44,7 +44,7 @@ function main() {
 				});
 			});
 
-			return () => { };
+			return () => {};
 		});
 	};
 	tyx.functions.homeHero = function () {
@@ -319,7 +319,7 @@ function main() {
 	tyx.functions.magicCarousel = function () {
 		var check = document.querySelector(".s-magic-carousel .splide");
 		if (!check) return;
-	
+
 		var splide = new Splide(".s-magic-carousel .splide", {
 			type: "slide",
 			mediaQuery: "min",
@@ -329,11 +329,11 @@ function main() {
 			trimSpace: "move",
 			pagination: false,
 		});
-	
+
 		var bar = splide.root.querySelector(".progress_bar");
 		var prevArrow = splide.root.querySelector(".splide__arrow--prev");
 		var nextArrow = splide.root.querySelector(".splide__arrow--next");
-	
+
 		splide.on("mounted move", function () {
 			// Progress bar logic
 			if (bar) {
@@ -341,7 +341,7 @@ function main() {
 				var rate = Math.min((splide.index + 1) / end, 1);
 				bar.style.width = String(100 * rate) + "%";
 			}
-	
+
 			// Arrow disable logic
 			if (prevArrow) {
 				if (splide.index === 0) {
@@ -350,7 +350,7 @@ function main() {
 					prevArrow.classList.remove("is-inactive");
 				}
 			}
-	
+
 			if (nextArrow) {
 				if (splide.index === splide.Components.Controller.getEnd()) {
 					nextArrow.classList.add("is-inactive");
@@ -359,10 +359,9 @@ function main() {
 				}
 			}
 		});
-	
+
 		splide.mount();
 	};
-	
 
 	tyx.functions.counter = function () {
 		// create a custom effect for the counter
@@ -1095,7 +1094,7 @@ function main() {
 				nav.classList.toggle("is-past-threshold", past);
 
 				if (!past) {
-					nav.classList.remove("is-hidden");                // always show above threshold
+					nav.classList.remove("is-hidden"); // always show above threshold
 				} else {
 					nav.classList.toggle("is-hidden", self.direction === 1); // hide ↓, show ↑
 				}
@@ -1111,17 +1110,17 @@ function main() {
 
 			const bar = nav.querySelector(".nav_bar");
 			const barH = bar ? bar.offsetHeight : 0;
-			let current = null;                                   // currently-open <a>
+			let current = null; // currently-open <a>
 
-			const panels = new Map();                           // <a> ➜ matching .nav_content
-			const handlers = new Map();                           // <a> ➜ listener fn (for cleanup)
+			const panels = new Map(); // <a> ➜ matching .nav_content
+			const handlers = new Map(); // <a> ➜ listener fn (for cleanup)
 
 			/* ---------- helper to close everything -------------------------------- */
 			function closeAll() {
 				if (!current) return;
 
 				const pane = panels.get(current);
-				gsap.killTweensOf(pane);                          // stop any running tween
+				gsap.killTweensOf(pane); // stop any running tween
 				gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
 				gsap.to(nav, { height: barH, duration: 0.35 });
 
@@ -1134,8 +1133,7 @@ function main() {
 			nav.querySelectorAll(".nav_link").forEach((link) => {
 				/* work out panel name from data-attr or helper class */
 				const name =
-					link.dataset.panel || [...link.classList]
-						.find((c) => c.startsWith("is-"))?.slice(3);
+					link.dataset.panel || [...link.classList].find((c) => c.startsWith("is-"))?.slice(3);
 
 				const pane = nav.querySelector(`.nav_content.is-${name}`);
 
@@ -1145,8 +1143,8 @@ function main() {
 					gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
 
 					const openPane = (e) => {
-						e.preventDefault();                       // keep behaviour uniform
-						if (current === link) return;            // already open
+						e.preventDefault(); // keep behaviour uniform
+						if (current === link) return; // already open
 
 						/* close previous */
 						if (current) {
@@ -1170,7 +1168,7 @@ function main() {
 					link.addEventListener("mouseenter", openPane);
 					link.addEventListener("focus", openPane); // keyboard a11y
 					handlers.set(link, openPane);
-					return;                                       // ← done for a “panel” link
+					return; // ← done for a “panel” link
 				}
 
 				/* CASE 2 – link HAS NO panel → just close everything --------------- */
@@ -1196,9 +1194,7 @@ function main() {
 				nav.removeEventListener("mouseleave", closeAll);
 				nav.classList.remove("is-open");
 				gsap.set(nav, { height: "auto" });
-				panels.forEach((pane) =>
-					gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" })
-				);
+				panels.forEach((pane) => gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" }));
 			};
 		});
 
@@ -1223,16 +1219,21 @@ function main() {
 
 				const fullH = CSS.supports("height:100dvh") ? "100dvh" : "100vh";
 
-				gsap.timeline()
+				gsap
+					.timeline()
 					.to(icons[0], { autoAlpha: open ? 1 : 0, duration: 0.2 }, 0)
 					.to(icons[1], { autoAlpha: open ? 0 : 1, duration: 0.2 }, 0)
-					.to(drawer, {
-						height: open ? fullH : 0,
-						autoAlpha: open ? 1 : 0,
-						display: open ? "block" : "none",
-						duration: open ? 0.4 : 0.3,
-						ease: open ? "power2.out" : "power2.in",
-					}, 0);
+					.to(
+						drawer,
+						{
+							height: open ? fullH : 0,
+							autoAlpha: open ? 1 : 0,
+							display: open ? "block" : "none",
+							duration: open ? 0.4 : 0.3,
+							ease: open ? "power2.out" : "power2.in",
+						},
+						0
+					);
 			};
 			btn.addEventListener("click", onBtn);
 
@@ -1247,9 +1248,7 @@ function main() {
 				const fn = (e) => {
 					e.preventDefault();
 					const isOpen = toggle.classList.toggle("is-open");
-					toggle
-						.querySelector(".nav_content-link-toggle")
-						?.classList.toggle("is-open", isOpen);
+					toggle.querySelector(".nav_content-link-toggle")?.classList.toggle("is-open", isOpen);
 
 					gsap.to(pane, {
 						height: isOpen ? pane.scrollHeight : 0,
@@ -1267,9 +1266,7 @@ function main() {
 			return () => {
 				console.log("🟢 Exit MOBILE");
 				btn.removeEventListener("click", onBtn);
-				accordions.forEach(({ toggle, fn }) =>
-					toggle.removeEventListener("click", fn)
-				);
+				accordions.forEach(({ toggle, fn }) => toggle.removeEventListener("click", fn));
 				gsap.set(drawer, { height: 0, autoAlpha: 0 });
 				nav.classList.remove("is-open");
 				nav.style.removeProperty("height");
@@ -1279,6 +1276,56 @@ function main() {
 		console.log("✅ Nav script fully initialised after DOM ready");
 	};
 
+	tyx.functions.magicModal = function () {
+		//check we have some .magic-card elements
+		const cards = document.querySelectorAll(".magic-card");
+		if (!cards.length) return;
+
+		const modals = document.querySelectorAll(".magic-modal");
+		if (!modals.length) return;
+
+		const mm = gsap.matchMedia();
+
+		/* for each card, we have a hidden .magic-modal element. On click of the relevant button on each card:
+		- open the modal
+		- disable scroll on the body
+		
+		And on click of the close button:
+		- close the modal
+		- enable scroll on the body
+		*/
+
+		mm.add("(max-width: 768px)", () => {
+			cards.forEach((card, i) => {
+				const btn = card.querySelector(".magic-card_btn");
+				const modal = modals[i];
+				// const modal = card.querySelector(".magic-modal");
+				const closeBtn = modal.querySelector(".magic-modal_close");
+
+				if (!btn || !modal || !closeBtn) return;
+
+				btn.addEventListener("click", function () {
+					// modal.classList.add("is-open");
+					// document.body.classList.add("is-modal-open");
+					gsap.set(modal, { display: "block" });
+					gsap.set(document.body, { overflow: "hidden" });
+					// gsap.set(modal, { pointerEvents: "auto" });
+				});
+
+				closeBtn.addEventListener("click", function () {
+					// modal.classList.remove("is-open");
+					// document.body.classList.remove("is-modal-open");
+					gsap.set(modal, { display: "none" });
+					gsap.set(document.body, { overflow: "auto" });
+					// gsap.set(modal, { pointerEvents: "none" });
+				});
+			});
+			return () => {
+				gsap.set(modals, { display: "none" });
+				gsap.set(document.body, { overflow: "auto" });
+			};
+		});
+	};
 
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
@@ -1300,6 +1347,7 @@ function main() {
 	tyx.functions.teamSlider();
 	tyx.functions.fancyHero();
 	tyx.functions.nav();
+	tyx.functions.magicModal();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
