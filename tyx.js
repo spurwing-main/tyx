@@ -866,7 +866,7 @@ function main() {
 			let time = 0;
 
 			function frame() {
-				time += 0.01;
+				time += 0.005;
 				const rect = container.getBoundingClientRect();
 
 				bars.forEach((bar, i) => {
