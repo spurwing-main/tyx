@@ -1304,10 +1304,13 @@ function main() {
 
 				if (!btn || !modal || !closeBtn) return;
 
+				gsap.set(modal, { autoAlpha: 0, display: "block", pointerEvents: "none" });
+
 				btn.addEventListener("click", function () {
 					// modal.classList.add("is-open");
 					// document.body.classList.add("is-modal-open");
-					gsap.set(modal, { display: "block" });
+					gsap.set(modal, { pointerEvents: "auto" });
+					gsap.to(modal, { autoAlpha: 1, duration: 0.3 });
 					gsap.set(document.body, { overflow: "hidden" });
 					// gsap.set(modal, { pointerEvents: "auto" });
 				});
@@ -1315,7 +1318,8 @@ function main() {
 				closeBtn.addEventListener("click", function () {
 					// modal.classList.remove("is-open");
 					// document.body.classList.remove("is-modal-open");
-					gsap.set(modal, { display: "none" });
+					gsap.to(modal, { autoAlpha: 0, duration: 0.3 });
+					gsap.set(modal, { pointerEvents: "none" });
 					gsap.set(document.body, { overflow: "auto" });
 					// gsap.set(modal, { pointerEvents: "none" });
 				});
