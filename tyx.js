@@ -317,33 +317,52 @@ function main() {
 	};
 
 	tyx.functions.magicCarousel = function () {
-		// check
 		var check = document.querySelector(".s-magic-carousel .splide");
 		if (!check) return;
+	
 		var splide = new Splide(".s-magic-carousel .splide", {
 			type: "slide",
 			mediaQuery: "min",
 			autoWidth: true,
-			//width: "16rem",
 			autoplay: false,
 			arrows: true,
 			trimSpace: "move",
 			pagination: false,
 		});
+	
 		var bar = splide.root.querySelector(".progress_bar");
-		if (!bar) {
-			splide.mount();
-			return;
-		} else {
-			// Updates the bar width whenever the carousel moves:
-			splide.on("mounted move", function () {
+		var prevArrow = splide.root.querySelector(".splide__arrow--prev");
+		var nextArrow = splide.root.querySelector(".splide__arrow--next");
+	
+		splide.on("mounted move", function () {
+			// Progress bar logic
+			if (bar) {
 				var end = splide.Components.Controller.getEnd() + 1;
 				var rate = Math.min((splide.index + 1) / end, 1);
 				bar.style.width = String(100 * rate) + "%";
-			});
-			splide.mount();
-		}
+			}
+	
+			// Arrow disable logic
+			if (prevArrow) {
+				if (splide.index === 0) {
+					prevArrow.classList.add("is-inactive");
+				} else {
+					prevArrow.classList.remove("is-inactive");
+				}
+			}
+	
+			if (nextArrow) {
+				if (splide.index === splide.Components.Controller.getEnd()) {
+					nextArrow.classList.add("is-inactive");
+				} else {
+					nextArrow.classList.remove("is-inactive");
+				}
+			}
+		});
+	
+		splide.mount();
 	};
+	
 
 	tyx.functions.counter = function () {
 		// create a custom effect for the counter
