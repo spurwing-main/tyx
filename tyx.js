@@ -465,11 +465,12 @@ function main() {
 			},
 		});
 		tl.to(
-			[".s-home-intro .section-bg-neg", ".s-home-stats"],
+			[".s-home-intro .section-bg-neg", ".s-home-stats", ".s-magic-carousel"],
 			{
-				// color: "white",
 				backgroundColor: "var(--_color---grey--dark-2)",
 				"--_theme---body": "white",
+				"--_theme---link": "var(--_color---blue--mid)",
+				"--_theme---link-hover": "var(--_color---purple--mid)",
 			},
 			0
 		);
