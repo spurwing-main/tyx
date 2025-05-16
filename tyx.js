@@ -1015,15 +1015,26 @@ function main() {
 			const media = section.querySelector(".media");
 			if (!media) return;
 
+			const video = media.querySelector("video");
+
+			const triggerDistance = 40;
+
 			scrollTriggerOptions = {
 				trigger: section,
-				start: "bottom 97%",
+				start: `top+=${triggerDistance} top`,
+				end: "+=20%", // pin for 100% of viewport height
 				scrub: false,
 				// markers: true,
 				toggleActions: "play none none reverse",
+				pin: true,
+				pinSpacing: true,
+				anticipatePin: 1,
 			};
 
-			gsap.set(media, { transformOrigin: "50% 75%" });
+			gsap.set(media, { transformOrigin: "50% 75%", top: triggerDistance });
+			gsap.set(section, { marginBottom: triggerDistance });
+			gsap.set(media, { scale: 0.75, yPercent: 30 }); // CSS hides media to avoid FOUC
+			gsap.fromTo(media, { autoAlpha: 0, duration: 0.5 }, { autoAlpha: 1 }); // then show
 
 			let q = gsap.utils.selector(".hero_split-h1");
 
@@ -1032,11 +1043,12 @@ function main() {
 					...scrollTriggerOptions,
 				},
 			});
-			tl.set(media, { autoAlpha: 1 }); // CSS hides media to avoid FOUC
+			tl.timeScale(0.75); // slow down the timeline
+			// tl.set(media, { autoAlpha: 1 }); // CSS hides media to avoid FOUC
 			tl.to(
 				q(":nth-child(even)"),
 				{
-					translateX: "-80vw",
+					translateX: "-100vw",
 					duration: 1.5,
 					ease: "power3.out",
 				},
@@ -1045,7 +1057,7 @@ function main() {
 			tl.to(
 				q(":nth-child(odd)"),
 				{
-					translateX: "80vw",
+					translateX: "100vw",
 					duration: 1.5,
 					ease: "power3.out",
 				},
@@ -1060,12 +1072,22 @@ function main() {
 				},
 				"0"
 			);
-			tl.from(
+			tl.fromTo(
 				media,
-				{ scale: 0.5, yPercent: 100, duration: 1.5, ease: "power3.out" },
-
+				{ scale: 0.75, yPercent: 30, duration: 1.5, ease: "power3.out" },
+				{ scale: 1, yPercent: 0 },
 				"0"
 			);
+			// play video halfway through timeline
+			if (video) {
+				tl.call(
+					() => {
+						video.play();
+					},
+					null,
+					"0.5"
+				);
+			}
 		});
 	};
 
