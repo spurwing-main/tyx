@@ -6,6 +6,8 @@ function main() {
 		mbl: 480,
 	};
 
+	tyx.lazyLoadVideos = false;
+
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
 
@@ -490,16 +492,20 @@ function main() {
 
 			var isPlaying = false;
 
-			const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
-			if (!dataSrc) return;
+			if (tyx.lazyLoadVideos) {
+				const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
+				if (!dataSrc) return;
 
-			// generate the poster URL for the video
-			const posterURL = tyx.helperFunctions.generatePosterURL(video, dataSrc);
-			video.setAttribute("poster", posterURL);
+				// generate the poster URL for the video
+				const posterURL = tyx.helperFunctions.generatePosterURL(video, dataSrc);
+				video.setAttribute("poster", posterURL);
 
-			// generate the video URL for the video
-			const videoURL = tyx.helperFunctions.generateVideoURL(video, dataSrc);
-			videoSource.setAttribute("src", videoURL);
+				// generate the video URL for the video
+				const videoURL = tyx.helperFunctions.generateVideoURL(video, dataSrc);
+				videoSource.setAttribute("src", videoURL);
+			} else {
+				tyx.helperFunctions.simpleVideoLoad(video);
+			}
 
 			video.onplaying = function () {
 				isPlaying = true;
@@ -1394,6 +1400,11 @@ function main() {
 			*/
 
 		lazyVideos.forEach((video) => {
+			if (!tyx.lazyLoadVideos) {
+				tyx.helperFunctions.simpleVideoLoad(video);
+				return;
+			}
+
 			const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
 			if (!dataSrc || !videoSource) return;
 
@@ -1446,6 +1457,16 @@ function main() {
 				});
 			}
 		});
+	};
+
+	tyx.helperFunctions.simpleVideoLoad = function (video) {
+		let sourceElement = video.querySelector("source");
+		let dataSrc = sourceElement.dataset.src;
+		if (sourceElement && dataSrc) {
+			video.muted = true;
+			sourceElement.setAttribute("src", sourceElement.dataset.src);
+			video.load();
+		}
 	};
 
 	tyx.helperFunctions.generatePosterURL = function (video, dataSrc) {
