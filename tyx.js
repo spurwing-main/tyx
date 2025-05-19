@@ -490,6 +490,17 @@ function main() {
 
 			var isPlaying = false;
 
+			const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
+			if (!dataSrc) return;
+
+			// generate the poster URL for the video
+			const posterURL = tyx.helperFunctions.generatePosterURL(video, dataSrc);
+			video.setAttribute("poster", posterURL);
+
+			// generate the video URL for the video
+			const videoURL = tyx.helperFunctions.generateVideoURL(video, dataSrc);
+			videoSource.setAttribute("src", videoURL);
+
 			video.onplaying = function () {
 				isPlaying = true;
 				console.log("change to playing");
@@ -645,7 +656,7 @@ function main() {
 			autoplay: false,
 			autoScroll: {
 				speed: 1,
-				pauseOnHover: false
+				pauseOnHover: false,
 			},
 			arrows: false,
 			trimSpace: "move",
@@ -664,7 +675,7 @@ function main() {
 			autoplay: false,
 			autoScroll: {
 				speed: 1,
-				pauseOnHover: false
+				pauseOnHover: false,
 			},
 			arrows: false,
 			trimSpace: "move",
@@ -1356,8 +1367,131 @@ function main() {
 		});
 	};
 
+	tyx.functions.handleVideos = function () {
+		let lazyVideos = [].slice.call(document.querySelectorAll("video"));
+		if (!lazyVideos.length) return;
+
+		const sampleURL =
+			"https://res.cloudinary.com/dwlrquifr/video/upload/v1747389123/All_Spaces_With_People_v3.mp4";
+
+		// first we need to generate a poster image for each video from the Cloudinary URL
+
+		/* process:
+		- loop through all videos
+		- get the data src for each video
+		- generate the poster URL for each video
+		- generate the video URL for each video
+		- set the poster attribute of the video element
+		- then we get onto the lazy loading with GSAP ScrollTrigger...
+			- create a scroll trigger for each video
+			- when the video is 100vh from the top of the viewport, set the src attribute of the video element (if video is in a hero section, the video should be loaded immediately)
+			- load the video
+			- remove the lazy class from the video element
+			- video should be paused
+			- when video scrolls into view, play the video
+			- when video scrolls out of view, pause the video
+			if video is one that plays on hover, then play the video only on hover, not on scroll
+			*/
+
+		lazyVideos.forEach((video) => {
+			const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
+			if (!dataSrc || !videoSource) return;
+
+			const isCloudinary = dataSrc.includes("res.cloudinary.com");
+			let videoURL, posterURL;
+
+			if (isCloudinary) {
+				// Use transformed Cloudinary URLs
+				posterURL = tyx.helperFunctions.generatePosterURL(video, dataSrc);
+				videoURL = tyx.helperFunctions.generateVideoURL(video, dataSrc);
+			} else {
+				// Use original URLs
+				videoURL = dataSrc;
+				posterURL = video.getAttribute("poster") || "";
+			}
+
+			// Set attributes
+			if (posterURL) video.setAttribute("poster", posterURL);
+			if (videoURL) videoSource.setAttribute("src", videoURL);
+
+			video.muted = true;
+
+			// create a scroll trigger for each video
+			let loadTrigger = ScrollTrigger.create({
+				trigger: video,
+				start: "top 200%",
+				onEnter: () => {
+					// set the src attribute of the video element
+					videoSource.setAttribute("src", videoURL);
+					video.classList.remove("lazy");
+					video.load();
+					console.log("video loaded");
+					// this.kill(); // kill the scroll trigger
+				},
+			});
+
+			if (video.dataset.playOnHover !== "hover") {
+				let playTrigger = ScrollTrigger.create({
+					trigger: video,
+					start: "top 100%",
+					end: "bottom 0%",
+					onEnter: () => {
+						console.log("video play");
+						video.play();
+					},
+					onLeaveBack: () => {
+						console.log("video pause");
+						video.pause();
+					},
+				});
+			}
+		});
+	};
+
+	tyx.helperFunctions.generatePosterURL = function (video, dataSrc) {
+		if (!dataSrc) return;
+
+		const parts = dataSrc.split("/upload/");
+		if (parts.length !== 2) return;
+
+		const [base, rest] = parts;
+		const restWithoutExtension = rest.split(".").slice(0, -1).join(".");
+		const posterURL = `${base}/upload/q_auto/${restWithoutExtension}.jpg`;
+
+		// console.log("posterURL", posterURL);
+		return posterURL;
+	};
+
+	tyx.helperFunctions.generateVideoURL = function (video, dataSrc, quality = "q_auto,f_auto") {
+		if (!dataSrc) return;
+
+		const parts = dataSrc.split("/upload/");
+		if (parts.length !== 2) return;
+
+		const [base, rest] = parts;
+		const restWithoutExtension = rest.split(".").slice(0, -1).join(".");
+		const videoURL = `${base}/upload/${quality}/${restWithoutExtension}.mp4`;
+
+		// console.log("videoURL", videoURL);
+		return videoURL;
+	};
+
+	tyx.helperFunctions.getVideoDataSrc = function (video) {
+		// check if the video's source element has a data-src attribute
+		// only look at the first source element
+		// also return the source element so we can later set the src attribute
+
+		const videoSource = video.getElementsByTagName("source")[0];
+		if (!videoSource) return;
+
+		const dataSrc = videoSource.getAttribute("data-src");
+		if (!dataSrc) return;
+		return [dataSrc, videoSource];
+	};
+
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
+	tyx.functions.handleVideos();
 	tyx.functions.playVideosOnHover();
 	// tyx.functions.magicCard();
 	tyx.functions.serviceCard();
