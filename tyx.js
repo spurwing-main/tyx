@@ -6,7 +6,7 @@ function main() {
 		mbl: 480,
 	};
 
-	tyx.lazyLoadVideos = false;
+	tyx.lazyLoadVideos = true;
 
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
