@@ -645,6 +645,7 @@ function main() {
 			autoplay: false,
 			autoScroll: {
 				speed: 1,
+				pauseOnHover: false
 			},
 			arrows: false,
 			trimSpace: "move",
@@ -663,6 +664,7 @@ function main() {
 			autoplay: false,
 			autoScroll: {
 				speed: 1,
+				pauseOnHover: false
 			},
 			arrows: false,
 			trimSpace: "move",
