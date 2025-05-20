@@ -75,6 +75,7 @@ function main() {
 		});
 	};
 	tyx.functions.homeHero = function () {
+		return;
 		const mediaElem = document.querySelector(".home-hero_media-wrap");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
 		const scrollTargetMbl = document.querySelector(".scroll-target-mbl");
