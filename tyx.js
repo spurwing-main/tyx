@@ -1491,7 +1491,7 @@ function main() {
 						console.log("video pause");
 						video.pause();
 					},
-					markers: true,
+					// markers: true,
 				});
 			}
 		});
