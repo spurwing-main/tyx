@@ -994,8 +994,6 @@ function main() {
 		const faqGroups = document.querySelectorAll(".s-faq");
 		if (!faqGroups) return;
 
-		console.log("faq");
-
 		function open(array, itemObj) {
 			// Close other open items in the same group
 			array.forEach((el) => {
@@ -1141,9 +1139,6 @@ function main() {
  TYX Nav – hover-driven desktop, click-driven mobile
 --------------------------------------------------------------------------- */
 	tyx.functions.nav = function () {
-		console.log("🌟 TYX nav script booted");
-		console.log("📄 DOMContentLoaded → initialise nav");
-
 		// gsap.registerPlugin(ScrollTrigger);
 
 		const nav = document.querySelector(".nav");
@@ -1174,8 +1169,6 @@ function main() {
 
 		/* ===== DESKTOP – HOVER =================================================== */
 		mm.add("(min-width: 992px)", () => {
-			console.log("🔵 Enter DESKTOP (hover version)");
-
 			const bar = nav.querySelector(".nav_bar");
 			const barH = bar ? bar.offsetHeight : 0;
 			let current = null; // currently-open <a>
@@ -1254,7 +1247,6 @@ function main() {
 
 			/* ---------- CLEAN-UP when media query changes ------------------------- */
 			return () => {
-				console.log("🔵 Exit DESKTOP (hover version)");
 				handlers.forEach((fn, link) => {
 					link.removeEventListener("mouseenter", fn);
 					link.removeEventListener("focus", fn);
@@ -1268,8 +1260,6 @@ function main() {
 
 		/* ===== MOBILE – click-driven drawer ===================================== */
 		mm.add("(max-width: 991px)", () => {
-			console.log("🟢 Enter MOBILE");
-
 			const btn = nav.querySelector(".nav_mob-icon");
 			const icons = btn.querySelectorAll(".nav_mob-icon-svg");
 			const drawer = nav.querySelector(".nav_mob-content");
@@ -1332,7 +1322,6 @@ function main() {
 
 			/* ---------- CLEAN-UP for mobile variant ------------------------------- */
 			return () => {
-				console.log("🟢 Exit MOBILE");
 				btn.removeEventListener("click", onBtn);
 				accordions.forEach(({ toggle, fn }) => toggle.removeEventListener("click", fn));
 				gsap.set(drawer, { height: 0, autoAlpha: 0 });
@@ -1340,8 +1329,6 @@ function main() {
 				nav.style.removeProperty("height");
 			};
 		});
-
-		console.log("✅ Nav script fully initialised after DOM ready");
 	};
 
 	tyx.functions.magicModal = function () {
@@ -1466,7 +1453,7 @@ function main() {
 							false
 						);
 					}
-					console.log("video loaded");
+					// console.log("video loaded");
 					video.setAttribute("data-load", "loaded"); // set a data attribute to prevent loading again
 				},
 			});
@@ -1477,19 +1464,19 @@ function main() {
 					start: "top 110%",
 					end: "bottom -20%",
 					onEnter: () => {
-						console.log("video play");
+						// console.log("video play");
 						video.play();
 					},
 					onLeave: () => {
-						console.log("video pause");
+						// console.log("video pause");
 						video.pause();
 					},
 					onEnterBack: () => {
-						console.log("video play");
+						// console.log("video play");
 						video.play();
 					},
 					onLeaveBack: () => {
-						console.log("video pause");
+						// console.log("video pause");
 						video.pause();
 					},
 					// markers: true,
