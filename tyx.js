@@ -509,11 +509,11 @@ function main() {
 
 			video.onplaying = function () {
 				isPlaying = true;
-				console.log("change to playing");
+				// console.log("change to playing");
 			};
 			video.onpause = function () {
 				isPlaying = false;
-				console.log("change to pause");
+				// console.log("change to pause");
 			};
 			trigger.addEventListener("mouseenter", function () {
 				playVid(video, isPlaying);
@@ -526,7 +526,7 @@ function main() {
 		// Play video function
 		async function playVid(video, isPlaying) {
 			if (video.paused && !isPlaying) {
-				console.log("play");
+				// console.log("play");
 				return video.play();
 			}
 		}
@@ -534,7 +534,7 @@ function main() {
 		// Pause video function
 		function pauseVid(video, isPlaying) {
 			if (!video.paused && isPlaying) {
-				console.log("pause");
+				// console.log("pause");
 				video.pause();
 			}
 		}
@@ -1377,11 +1377,6 @@ function main() {
 		let lazyVideos = [].slice.call(document.querySelectorAll("video"));
 		if (!lazyVideos.length) return;
 
-		const sampleURL =
-			"https://res.cloudinary.com/dwlrquifr/video/upload/v1747389123/All_Spaces_With_People_v3.mp4";
-
-		// first we need to generate a poster image for each video from the Cloudinary URL
-
 		/* process:
 		- loop through all videos
 		- get the data src for each video
@@ -1432,12 +1427,21 @@ function main() {
 				trigger: video,
 				start: "top 200%",
 				onEnter: () => {
+					if (video.dataset.load === "loaded") return; // don't load again
 					// set the src attribute of the video element
 					videoSource.setAttribute("src", videoURL);
-					video.classList.remove("lazy");
 					video.load();
+					if (!video.autoplay) {
+						video.addEventListener(
+							"loadeddata",
+							function () {
+								video.pause();
+							},
+							false
+						);
+					}
 					console.log("video loaded");
-					// this.kill(); // kill the scroll trigger
+					video.setAttribute("data-load", "loaded"); // set a data attribute to prevent loading again
 				},
 			});
 
@@ -1477,7 +1481,7 @@ function main() {
 
 		const [base, rest] = parts;
 		const restWithoutExtension = rest.split(".").slice(0, -1).join(".");
-		const posterURL = `${base}/upload/q_auto/${restWithoutExtension}.jpg`;
+		const posterURL = `${base}/upload/so_auto/q_auto/${restWithoutExtension}.jpg`;
 
 		// console.log("posterURL", posterURL);
 		return posterURL;
@@ -1491,7 +1495,7 @@ function main() {
 
 		const [base, rest] = parts;
 		const restWithoutExtension = rest.split(".").slice(0, -1).join(".");
-		const videoURL = `${base}/upload/${quality}/${restWithoutExtension}.mp4`;
+		const videoURL = `${base}/upload/${quality}/${restWithoutExtension}.webm`;
 
 		// console.log("videoURL", videoURL);
 		return videoURL;
