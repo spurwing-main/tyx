@@ -194,7 +194,7 @@ function main() {
 					delay: 5000,
 				},
 				navigation: {
-					nextEl: ".splide__arrow",
+					nextEl: ".splide__arrow.splide__arrow--next",
 					prevEl: ".splide__arrow.splide__arrow--prev",
 				},
 				loop: true,
