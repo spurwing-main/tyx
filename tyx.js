@@ -1535,6 +1535,7 @@ function main() {
 	tyx.functions.changeIntroColors();
 	tyx.functions.handleVideos();
 	tyx.functions.playVideosOnHover();
+	tyx.functions.counter();
 	// tyx.functions.magicCard();
 	tyx.functions.serviceCard();
 	tyx.functions.chaosMarquee();
@@ -1558,6 +1559,6 @@ function main() {
 	document.fonts.ready.then(function () {
 		gsap.set(".anim-in", { autoAlpha: 1 });
 		tyx.functions.randomText();
-		tyx.functions.counter();
+		// tyx.functions.counter();
 	});
 }
