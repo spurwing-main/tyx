@@ -866,7 +866,7 @@ function main() {
 			const heading = section.querySelector(".service-hero_heading");
 			const bg = section.querySelector(".service-hero_bg");
 
-			gsap.set(heading, { yPercent: 200 });
+			gsap.set(heading, { yPercent: 200, autoAlpha: 1 });
 
 			const tl = gsap.timeline({});
 			tl.to(
