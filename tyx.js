@@ -75,91 +75,85 @@ function main() {
 		});
 	};
 	tyx.functions.homeHero = function () {
-		return;
 		const mediaElem = document.querySelector(".home-hero_media-wrap");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
-		const scrollTargetMbl = document.querySelector(".scroll-target-mbl");
 		const sizeTargetDsk = document.querySelector(".size-target-dsk");
-		if (!mediaElem || !scrollTargetDsk || !scrollTargetMbl) {
+		if (!mediaElem || !scrollTargetDsk) {
 			console.error("[Hero Animation] Missing required elements.");
 			return;
 		}
 
-		// Clear any existing ScrollTriggers on this element
-		ScrollTrigger.getAll().forEach((trigger) => {
-			if (trigger.pin === mediaElem) trigger.kill();
+		const mm = gsap.matchMedia();
+		let heroTL, heroTrigger;
+
+		// DESKTOP CONTEXT
+		mm.add(`(min-width: ${tyx.breakpoints.tab}px)`, () => {
+			// kill any old instance for this hero
+			if (heroTrigger) heroTrigger.kill();
+			if (heroTL) heroTL.kill();
+
+			const windowWidth = window.innerWidth;
+			const desiredWidth = sizeTargetDsk.offsetWidth;
+			const scaleFactor = windowWidth >= desiredWidth ? desiredWidth / windowWidth : 0.5;
+			const transformOriginX = (scrollTargetDsk.offsetLeft / windowWidth) * 100;
+
+			gsap.set(mediaElem, { transformOrigin: `${transformOriginX}% 50%` });
+
+			// build timeline and keep refs
+			heroTL = gsap
+				.timeline({
+					scrollTrigger: {
+						trigger: ".s-home-hero",
+						start: "top top",
+						end: "center center",
+						endTrigger: scrollTargetDsk,
+						scrub: true,
+						pin: mediaElem,
+						pinSpacing: true,
+						onUpdate(self) {
+							if (self.progress === 1) {
+								gsap.set(mediaElem, {
+									position: "relative",
+									top: "auto",
+									left: "auto",
+									xPercent: 0,
+									yPercent: 0,
+								});
+							}
+						},
+						onLeaveBack() {
+							gsap.set(mediaElem, {
+								clearProps: "position,top,left,xPercent,yPercent,transformOrigin",
+							});
+						},
+						// capture the trigger instance
+						onToggle(self, isActive) {
+							heroTrigger = self;
+						},
+					},
+				})
+				.to(mediaElem, { scale: scaleFactor, left: 0, ease: "power2.out" })
+				.to(
+					[".home-hero_content", ".home-hero_video-overlay"],
+					{ opacity: 0, ease: "power2.out" },
+					"<"
+				);
+
+			// return cleanup for when desktop un-matches
+			return () => {
+				heroTrigger && heroTrigger.kill();
+				heroTL && heroTL.kill();
+				gsap.set(mediaElem, { clearProps: "all" });
+			};
 		});
 
-		const mm = gsap.matchMedia();
-		mm.add(
-			{
-				// set up any number of arbitrarily-named conditions. The function below will be called when ANY of them match.
-				isDesktop: `(min-width: ${tyx.breakpoints.tab}px)`,
-				isMobile: `(max-width: ${tyx.breakpoints.tab - 1}px)`,
-				//   reduceMotion: "(prefers-reduced-motion: reduce)",
-			},
-			(context) => {
-				let { isDesktop, isMobile } = context.conditions;
-				const scrollTarget = isDesktop ? scrollTargetDsk : scrollTargetMbl;
-
-				const windowWidth = window.innerWidth;
-				// const desiredWidth = scrollTarget.offsetWidth / 2 - 32;
-				const desiredWidth = sizeTargetDsk.offsetWidth;
-
-				const scaleFactor =
-					isDesktop && windowWidth >= desiredWidth ? desiredWidth / windowWidth : 0.5;
-
-				const transformOriginX = (scrollTargetDsk.offsetLeft / windowWidth) * 100;
-				if (isDesktop) {
-					gsap.set(mediaElem, {
-						transformOrigin: `${transformOriginX}% 50%`,
-					});
-				}
-
-				gsap
-					.timeline({
-						scrollTrigger: {
-							trigger: ".s-home-hero",
-							start: "top top",
-							end: "center center",
-							endTrigger: scrollTarget,
-							scrub: true,
-							// markers: true,
-							pin: mediaElem,
-							pinSpacing: true,
-							onUpdate: function (self) {
-								if (self.progress === 1) {
-									gsap.set(mediaElem, {
-										position: "relative",
-										top: "auto",
-										left: "auto",
-										xPercent: 0,
-										yPercent: 0,
-									});
-								}
-							},
-							onLeaveBack: function () {
-								gsap.set(mediaElem, {
-									clearProps: "position, top, left, xPercent, yPercent, transformOrigin",
-								});
-							},
-						},
-					})
-					.to(mediaElem, {
-						scale: scaleFactor,
-						left: 0,
-						ease: "power2.out",
-					})
-					.to(
-						[".home-hero_content", ".home-hero_video-overlay"],
-						{
-							opacity: 0,
-							ease: "power2.out",
-						},
-						"<"
-					);
-			}
-		);
+		// MOBILE CONTEXT: cleanup only our hero
+		mm.add(`(max-width: ${tyx.breakpoints.tab - 1}px)`, () => {
+			heroTrigger && heroTrigger.kill();
+			heroTL && heroTL.kill();
+			gsap.set(mediaElem, { clearProps: "all" });
+			// no teardown return needed
+		});
 	};
 
 	tyx.functions.largeSlider = function () {
