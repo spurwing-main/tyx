@@ -1,19 +1,44 @@
 function main() {
+	/* register GSAP */
 	gsap.registerPlugin(SplitText, ScrollTrigger, Flip);
+
+	/* set breakpoints */
 	tyx.breakpoints = {
 		dsk: 992,
 		tab: 768,
 		mbl: 480,
 	};
 
-	tyx.lazyLoadVideos = true;
+	/* set splide defaults */
+	(function () {
+		Splide.defaults = {
+			perMove: 1,
+			gap: "0rem",
+			arrows: false,
+			pagination: false,
+			focus: 0,
+			speed: 600,
+			dragAngleThreshold: 60,
+			autoWidth: false,
+			rewind: false,
+			rewindSpeed: 400,
+			waitForTransition: false,
+			updateOnMove: true,
+			trimSpace: "move",
+			type: "loop",
+			drag: true,
+			snap: true,
+			autoWidth: false,
+			autoplay: true,
+		};
+	})();
 
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
 
 		// only do this on desktop
 		mm.add("(min-width: 767px)", () => {
-			document.querySelectorAll(".home-hero_header h1").forEach((el) => {
+			document.querySelectorAll(".text-anim-random").forEach((el) => {
 				// Split text into char spans
 				const split = new SplitText(el, { types: "words, chars" });
 				// Ensure visibility
@@ -1445,12 +1470,20 @@ function main() {
 				},
 			});
 
-			if (video.dataset.playOnHover !== "hover") {
+			if (video.getAttribute("play-on-hover") !== "hover") {
 				let playTrigger = ScrollTrigger.create({
 					trigger: video,
-					start: "top 100%",
-					end: "bottom 0%",
+					start: "top 110%",
+					end: "bottom -20%",
 					onEnter: () => {
+						console.log("video play");
+						video.play();
+					},
+					onLeave: () => {
+						console.log("video pause");
+						video.pause();
+					},
+					onEnterBack: () => {
 						console.log("video play");
 						video.play();
 					},
@@ -1458,6 +1491,7 @@ function main() {
 						console.log("video pause");
 						video.pause();
 					},
+					markers: true,
 				});
 			}
 		});
