@@ -475,6 +475,7 @@ function main() {
 						});
 				});
 			},
+			once: true, // Ensure animation happens only once
 		});
 	};
 	tyx.functions.changeIntroColors = function () {
