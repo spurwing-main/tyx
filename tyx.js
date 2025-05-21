@@ -1345,37 +1345,75 @@ function main() {
 		- enable scroll on the body
 		*/
 
+		function openModal(modal) {
+			gsap.set(modal, { pointerEvents: "auto" });
+			gsap.to(modal, { autoAlpha: 1, duration: 0.3 });
+			gsap.set(document.body, { overflow: "hidden" });
+		}
+
+		function closeModal(modal, enableScroll = false, delay = 0) {
+			gsap.to(modal, { autoAlpha: 0, duration: 0.3, delay: delay });
+			gsap.set(modal, { pointerEvents: "none" });
+			if (enableScroll) {
+				// if we are using the close button, we want to enable scroll on the body
+				gsap.set(document.body, { overflow: "auto" });
+			}
+		}
+
 		mm.add("(max-width: 768px)", () => {
 			cards.forEach((card, i) => {
 				const btn = card.querySelector(".magic-card_btn");
+				// make button cover whole card
+				gsap.set(btn, {
+					innerHTML: "",
+					backgroundColor: "transparent",
+					borderRadius: "0",
+					opacity: 0,
+					gridColumn: "1 / -1",
+					gridRow: "1 / 3",
+					width: "100%",
+					height: "100%",
+					inset: 0,
+				});
 				const modal = modals[i];
-				// const modal = card.querySelector(".magic-modal");
+				const prevModal = modals[(i + cards.length - 1) % cards.length];
+				const nextModal = modals[(i + 1) % cards.length];
+				console.log(prevModal, nextModal);
 				const closeBtn = modal.querySelector(".magic-modal_close");
+				const arrowWrap = modal.querySelector(".magic-modal_arrow-wrap");
+				const prevBtn = modal.querySelector(".magic-modal_arrow.is-prev");
+				const nextBtn = modal.querySelector(".magic-modal_arrow.is-next");
+				gsap.set(arrowWrap, { autoAlpha: 1 });
 
 				if (!btn || !modal || !closeBtn) return;
 
 				gsap.set(modal, { autoAlpha: 0, display: "block", pointerEvents: "none" });
 
-				btn.addEventListener("click", function () {
-					// modal.classList.add("is-open");
-					// document.body.classList.add("is-modal-open");
-					gsap.set(modal, { pointerEvents: "auto" });
-					gsap.to(modal, { autoAlpha: 1, duration: 0.3 });
-					gsap.set(document.body, { overflow: "hidden" });
-					// gsap.set(modal, { pointerEvents: "auto" });
+				card.addEventListener("click", function () {
+					openModal(modal);
 				});
 
+				// if we have a next and prev button, add click events to them
+				if (prevModal) {
+					prevBtn.addEventListener("click", function () {
+						openModal(prevModal);
+						closeModal(modal, false, 0.3); // disable scroll on body
+					});
+				}
+				if (nextModal) {
+					nextBtn.addEventListener("click", function () {
+						openModal(nextModal);
+						closeModal(modal, false, 0.3); // disable scroll on body
+					});
+				}
+				// close button
 				closeBtn.addEventListener("click", function () {
-					// modal.classList.remove("is-open");
-					// document.body.classList.remove("is-modal-open");
-					gsap.to(modal, { autoAlpha: 0, duration: 0.3 });
-					gsap.set(modal, { pointerEvents: "none" });
-					gsap.set(document.body, { overflow: "auto" });
-					// gsap.set(modal, { pointerEvents: "none" });
+					closeModal(modal, true); // enable scroll on body
 				});
 			});
 			return () => {
 				gsap.set(modals, { display: "none" });
+				gsap.set(".magic-card_btn", { clearprops: "all" });
 				gsap.set(document.body, { overflow: "auto" });
 			};
 		});
