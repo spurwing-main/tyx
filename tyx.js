@@ -71,7 +71,7 @@ function main() {
 				});
 			});
 
-			return () => {};
+			return () => { };
 		});
 	};
 	tyx.functions.homeHero = function () {
@@ -1163,52 +1163,149 @@ function main() {
 	};
 
 	/* ---------------------------------------------------------------------------
- TYX Nav – hover-driven desktop, click-driven mobile
---------------------------------------------------------------------------- */
+	   TYX Nav – hover-driven desktop, click-driven mobile + sub-nav companion
+	--------------------------------------------------------------------------- */
+
 	tyx.functions.nav = function () {
+		/* ───────────────────────── CONFIG ───────────────────────── */
+		const DEBUG = true;               // 🔧 set true to see logs
+		const log = (...a) => DEBUG && console.log("[tyx.nav]", ...a);
+
 		// gsap.registerPlugin(ScrollTrigger);
 
 		const nav = document.querySelector(".nav");
-		if (!nav) {
-			console.error("❌ .nav element not found");
-			return;
-		}
+		const subnav = document.querySelector(".c-subnav");
+		const subBtn = document.querySelector(".subnav_mob-btn");
+		const subLinks = document.querySelector(".subnav_links");
 
-		/* ── 1) hide/show on scroll past 50 vh ──────────────────────────────────── */
+		if (!nav) { console.error("❌ .nav element not found"); return; }
+		log("init", { nav, subnav });
+
+		/* Thresholds (vh ratios) – tweak if ever needed */
+		const MAIN_THRESHOLD = 0.5;   // 50 vh
+		const SUB_THRESHOLD = 1.0;   // 100 vh
+
+		/* ─────────────────────── 1) MAIN NAV show / hide ──────────────────────── */
 		ScrollTrigger.create({
 			trigger: document.body,
 			start: "top top",
 			end: "bottom bottom",
 			onUpdate(self) {
-				const past = self.scroll() > window.innerHeight * 0.5;
-				nav.classList.toggle("is-past-threshold", past);
-
-				if (!past) {
-					nav.classList.remove("is-hidden"); // always show above threshold
-				} else {
-					nav.classList.toggle("is-hidden", self.direction === 1); // hide ↓, show ↑
+				/* Always hide while sub-nav is open (per your “yes”) */
+				if (subnav && subnav.classList.contains("is-open")) {
+					nav.classList.add("is-hidden");
+					nav.classList.add("is-past-threshold");
+					return;
 				}
+
+				const inside = self.scroll() <= window.innerHeight * MAIN_THRESHOLD;
+
+				nav.classList.toggle("is-hidden", !inside);
+				nav.classList.toggle("is-past-threshold", !inside);
 			},
 		});
 
-		/* ── 2) desktop vs mobile panels/drawer ─────────────────────────────────── */
+		/* ─────────────────────── 2) SUB-NAV open / close ──────────────────────── */
+		if (subnav) {
+			subnav.classList.add("dev")
+			subnav.classList.remove("is-open")
+			ScrollTrigger.create({
+				trigger: document.body,
+				start: () => `${window.innerHeight * SUB_THRESHOLD} top`,
+				end: "bottom bottom",
+				/* enter zone → open once and keep open */
+				onEnter() {
+					log("subnav → open");
+					subnav.classList.add("is-open");
+					nav.classList.add("is-hidden");          // keep main nav hidden
+				},
+				/* leave zone back upward → close */
+				onLeaveBack() {
+					log("subnav → close");
+					subnav.classList.remove("is-open");
+					/* main nav visibility now handled by its own trigger */
+				},
+			});
+		}
+		/* ───── sub-nav accordion: animate ONLY .c-subnav height ───── */
+		if (subBtn && subLinks && subnav) {
+			let linksOpen = false;
+			const closeSubLinks = () => {
+				if (!linksOpen) return;
+				gsap.killTweensOf(subnav);
+				gsap.to(subnav, {
+					height: "var(--sub-nav-h)",
+					duration: 0.4,
+					ease: "power2.inOut",
+					onComplete() {
+						linksOpen = false;
+					},
+				});
+				gsap.to(subBtn.querySelector("svg"), {
+					rotateX: 0,
+					transformOrigin: "center center",
+					duration: 0.25,
+					ease: "power2.out",
+				});
+			};
+			
+			const onSubBtn = () => {
+				if (!linksOpen) {
+					// OPEN: Animate from baseH to baseH + linksH
+					subnav.style.height = getComputedStyle(subnav).getPropertyValue('--sub-nav-h');
+					gsap.to(subnav, {
+						height: subnav.scrollHeight + "px", // Animate to measured open height
+						duration: 0.4,
+						ease: "power2.inOut",
+						onComplete() {
+							subnav.style.height = "auto"; // Let it auto-expand if content changes
+							linksOpen = true;
+						},
+					});
+
+				} else {
+					// CLOSE: Animate from current height to baseH (the var)
+					gsap.to(subnav, {
+						height: "var(--sub-nav-h)",
+						duration: 0.4,
+						ease: "power2.inOut",
+						onComplete() {
+							linksOpen = false;
+						},
+					});
+				}
+
+				// Arrow animation
+				gsap.to(subBtn.querySelector("svg"), {
+					rotateX: !linksOpen ? 180 : 0,
+					transformOrigin: "center center",
+					duration: 0.25,
+					ease: "power2.out",
+				});
+			};
+
+			subBtn.addEventListener("click", onSubBtn);
+		}
+
+
+		/* ─────────────────────── 3) matchMedia variants ───────────────────────── */
 		const mm = gsap.matchMedia();
 
-		/* ===== DESKTOP – HOVER =================================================== */
+		/* ============================= DESKTOP (≥992 px) ======================== */
 		mm.add("(min-width: 992px)", () => {
 			const bar = nav.querySelector(".nav_bar");
 			const barH = bar ? bar.offsetHeight : 0;
-			let current = null; // currently-open <a>
+			let current = null;
 
-			const panels = new Map(); // <a> ➜ matching .nav_content
-			const handlers = new Map(); // <a> ➜ listener fn (for cleanup)
+			const panels = new Map();
+			const handlers = new Map();
 
-			/* ---------- helper to close everything -------------------------------- */
 			function closeAll() {
 				if (!current) return;
+				log("desktop closeAll");
 
 				const pane = panels.get(current);
-				gsap.killTweensOf(pane); // stop any running tween
+				gsap.killTweensOf(pane);
 				gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
 				gsap.to(nav, { height: barH, duration: 0.35 });
 
@@ -1217,24 +1314,18 @@ function main() {
 				current = null;
 			}
 
-			/* ---------- set up every .nav_link ------------------------------------ */
 			nav.querySelectorAll(".nav_link").forEach((link) => {
-				/* work out panel name from data-attr or helper class */
-				const name =
-					link.dataset.panel || [...link.classList].find((c) => c.startsWith("is-"))?.slice(3);
-
+				const name = link.dataset.panel || [...link.classList].find((c) => c.startsWith("is-"))?.slice(3);
 				const pane = nav.querySelector(`.nav_content.is-${name}`);
 
-				/* CASE 1 – link HAS a corresponding panel -------------------------- */
 				if (pane) {
 					panels.set(link, pane);
 					gsap.set(pane, { autoAlpha: 0, pointerEvents: "none" });
 
 					const openPane = (e) => {
-						e.preventDefault(); // keep behaviour uniform
-						if (current === link) return; // already open
+						e.preventDefault();
+						if (current === link) return;
 
-						/* close previous */
 						if (current) {
 							const prevPane = panels.get(current);
 							gsap.killTweensOf(prevPane);
@@ -1242,7 +1333,6 @@ function main() {
 							current.classList.remove("is-active", "is-open");
 						}
 
-						/* open new */
 						const targetH = barH + pane.scrollHeight;
 						gsap.set(pane, { autoAlpha: 0, pointerEvents: "auto" });
 						gsap.to(nav, { height: targetH, duration: 0.35 });
@@ -1251,28 +1341,27 @@ function main() {
 						link.classList.add("is-active", "is-open");
 						nav.classList.add("is-open");
 						current = link;
+						log("desktop openPane", name);
 					};
 
 					link.addEventListener("mouseenter", openPane);
-					link.addEventListener("focus", openPane); // keyboard a11y
+					link.addEventListener("focus", openPane);
 					handlers.set(link, openPane);
-					return; // ← done for a “panel” link
+					return;
 				}
 
-				/* CASE 2 – link HAS NO panel → just close everything --------------- */
 				const closeOnEnter = () => closeAll();
 				link.addEventListener("mouseenter", closeOnEnter);
 				link.addEventListener("focus", closeOnEnter);
 				handlers.set(link, closeOnEnter);
 			});
 
-			/* close when pointer leaves whole nav, or focus moves out -------------- */
 			nav.addEventListener("mouseleave", closeAll);
 			nav.addEventListener("focusout", (e) => {
 				if (!nav.contains(e.relatedTarget)) closeAll();
 			});
 
-			/* ---------- CLEAN-UP when media query changes ------------------------- */
+			/* cleanup */
 			return () => {
 				handlers.forEach((fn, link) => {
 					link.removeEventListener("mouseenter", fn);
@@ -1285,7 +1374,7 @@ function main() {
 			};
 		});
 
-		/* ===== MOBILE – click-driven drawer ===================================== */
+		/* ============================== MOBILE (≤991 px) ======================== */
 		mm.add("(max-width: 991px)", () => {
 			const btn = nav.querySelector(".nav_mob-icon");
 			const icons = btn.querySelectorAll(".nav_mob-icon-svg");
@@ -1293,36 +1382,29 @@ function main() {
 			let open = false;
 			const accordions = [];
 
-			/* initial state */
 			gsap.set(icons[0], { autoAlpha: 0 });
 			gsap.set(drawer, { height: 0, autoAlpha: 0 });
 
-			/* hamburger → drawer */
 			const onBtn = () => {
 				open = !open;
+				log("mobile hamburger", open ? "open" : "close");
 				nav.classList.toggle("is-open", open);
 
 				const fullH = CSS.supports("height:100dvh") ? "100dvh" : "100vh";
 
-				gsap
-					.timeline()
+				gsap.timeline()
 					.to(icons[0], { autoAlpha: open ? 1 : 0, duration: 0.2 }, 0)
 					.to(icons[1], { autoAlpha: open ? 0 : 1, duration: 0.2 }, 0)
-					.to(
-						drawer,
-						{
-							height: open ? fullH : 0,
-							autoAlpha: open ? 1 : 0,
-							display: open ? "block" : "none",
-							duration: open ? 0.4 : 0.3,
-							ease: open ? "power2.out" : "power2.in",
-						},
-						0
-					);
+					.to(drawer, {
+						height: open ? fullH : 0,
+						autoAlpha: open ? 1 : 0,
+						display: open ? "block" : "none",
+						duration: open ? 0.4 : 0.3,
+						ease: open ? "power2.out" : "power2.in",
+					}, 0);
 			};
 			btn.addEventListener("click", onBtn);
 
-			/* sub-menu accordions */
 			nav.querySelectorAll("[data-toggle]").forEach((toggle) => {
 				const key = toggle.dataset.toggle;
 				const pane = nav.querySelector(`[data-details="${key}"]`);
@@ -1334,6 +1416,7 @@ function main() {
 					e.preventDefault();
 					const isOpen = toggle.classList.toggle("is-open");
 					toggle.querySelector(".nav_content-link-toggle")?.classList.toggle("is-open", isOpen);
+					log("mobile accordion", key, isOpen ? "open" : "close");
 
 					gsap.to(pane, {
 						height: isOpen ? pane.scrollHeight : 0,
@@ -1347,7 +1430,7 @@ function main() {
 				accordions.push({ toggle, fn });
 			});
 
-			/* ---------- CLEAN-UP for mobile variant ------------------------------- */
+			/* cleanup */
 			return () => {
 				btn.removeEventListener("click", onBtn);
 				accordions.forEach(({ toggle, fn }) => toggle.removeEventListener("click", fn));
@@ -1357,6 +1440,8 @@ function main() {
 			};
 		});
 	};
+
+
 
 	tyx.functions.magicModal = function () {
 		//check we have some .magic-card elements
