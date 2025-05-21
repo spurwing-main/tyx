@@ -732,7 +732,7 @@ function main() {
 			if (!steps) return;
 
 			// Set initial state
-			gsap.set(steps, { yPercent: 200, autoAlpha: 0 });
+			gsap.set(steps, { yPercent: 100, autoAlpha: 0 });
 
 			// Create a timeline for the animation
 			const tl = gsap.timeline({
@@ -740,7 +740,7 @@ function main() {
 					trigger: section,
 					start: "top 60%",
 					end: "bottom 80%",
-					scrub: true,
+					scrub: 1,
 					once: true,
 				},
 			});
@@ -749,7 +749,7 @@ function main() {
 				yPercent: 0,
 				autoAlpha: 1,
 				stagger: 0.3,
-				duration: 0.3,
+				duration: 1.3,
 				ease: "power2.out",
 			});
 		});
