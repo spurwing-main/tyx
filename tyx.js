@@ -685,9 +685,12 @@ function main() {
 				speed: 1,
 				pauseOnHover: false,
 			},
+			clones: 5,
 			arrows: false,
 			trimSpace: "move",
 			pagination: false,
+			snap: false,
+			drag: "free",
 		});
 
 		splide.mount(window.splide.Extensions);
@@ -782,6 +785,35 @@ function main() {
 					ease: "none",
 				}
 			);
+		});
+	};
+
+	tyx.functions.parallaxBasic = function () {
+		const parallaxTriggers = document.querySelectorAll(".anim-parallax-trigger");
+		// const parallaxTriggers = document.querySelectorAll(".pricing_bg");
+		if (!parallaxSections.length) return;
+
+		parallaxTriggers.forEach((trigger) => {
+			ScrollTrigger.update();
+			const target = trigger.querySelector(".anim-parallax-target");
+			// const target = trigger.querySelector(".img-cover");
+			if (!target) return;
+
+			const strength = parseFloat(trigger.dataset.parallaxStrength) || 20;
+
+			gsap.set(target, { yPercent: -strength, scale: () => (100 + 2 * strength) / 100 });
+
+			gsap.to(target, {
+				yPercent: strength,
+				ease: "none",
+				scrollTrigger: {
+					trigger: trigger,
+					scrub: true,
+					start: "top bottom",
+					end: "bottom top",
+					// markers: true,
+				},
+			});
 		});
 	};
 
@@ -1578,8 +1610,9 @@ function main() {
 	tyx.functions.serviceCard();
 	tyx.functions.chaosMarquee();
 	tyx.functions.process();
-	tyx.functions.parallax();
+
 	tyx.functions.benefits();
+
 	tyx.functions.textAnim();
 	tyx.functions.sticky5050();
 	tyx.functions.serviceHero();
@@ -1592,6 +1625,9 @@ function main() {
 	tyx.functions.fancyHero();
 	tyx.functions.nav();
 	tyx.functions.magicModal();
+	ScrollTrigger.refresh();
+	tyx.functions.parallax();
+	// tyx.functions.parallaxBasic();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
