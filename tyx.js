@@ -1627,7 +1627,7 @@ function main() {
 	tyx.functions.magicModal();
 	ScrollTrigger.refresh();
 	tyx.functions.parallax();
-	// tyx.functions.parallaxBasic();
+	tyx.functions.parallaxBasic();
 
 	// Initialize the randomText function after fonts are loaded
 	document.fonts.ready.then(function () {
