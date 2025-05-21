@@ -791,7 +791,7 @@ function main() {
 	tyx.functions.parallaxBasic = function () {
 		const parallaxTriggers = document.querySelectorAll(".anim-parallax-trigger");
 		// const parallaxTriggers = document.querySelectorAll(".pricing_bg");
-		if (!parallaxSections.length) return;
+		if (!parallaxTriggers.length) return;
 
 		parallaxTriggers.forEach((trigger) => {
 			ScrollTrigger.update();
