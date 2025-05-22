@@ -71,7 +71,7 @@ function main() {
 				});
 			});
 
-			return () => { };
+			return () => {};
 		});
 	};
 	tyx.functions.homeHero = function () {
@@ -1168,7 +1168,7 @@ function main() {
 
 	tyx.functions.nav = function () {
 		/* ───────────────────────── CONFIG ───────────────────────── */
-		const DEBUG = true;               // 🔧 set true to see logs
+		const DEBUG = true; // 🔧 set true to see logs
 		const log = (...a) => DEBUG && console.log("[tyx.nav]", ...a);
 
 		// gsap.registerPlugin(ScrollTrigger);
@@ -1178,12 +1178,15 @@ function main() {
 		const subBtn = document.querySelector(".subnav_mob-btn");
 		const subLinks = document.querySelector(".subnav_links");
 
-		if (!nav) { console.error("❌ .nav element not found"); return; }
+		if (!nav) {
+			console.error("❌ .nav element not found");
+			return;
+		}
 		log("init", { nav, subnav });
 
 		/* Thresholds (vh ratios) – tweak if ever needed */
-		const MAIN_THRESHOLD = 0.5;   // 50 vh
-		const SUB_THRESHOLD = 1.0;   // 100 vh
+		const MAIN_THRESHOLD = 0.5; // 50 vh
+		const SUB_THRESHOLD = 1.0; // 100 vh
 
 		/* ─────────────────────── 1) MAIN NAV show / hide ──────────────────────── */
 		ScrollTrigger.create({
@@ -1207,8 +1210,8 @@ function main() {
 
 		/* ─────────────────────── 2) SUB-NAV open / close ──────────────────────── */
 		if (subnav) {
-			subnav.classList.add("dev")
-			subnav.classList.remove("is-open")
+			subnav.classList.add("dev");
+			subnav.classList.remove("is-open");
 			ScrollTrigger.create({
 				trigger: document.body,
 				start: () => `${window.innerHeight * SUB_THRESHOLD} top`,
@@ -1217,7 +1220,7 @@ function main() {
 				onEnter() {
 					log("subnav → open");
 					subnav.classList.add("is-open");
-					nav.classList.add("is-hidden");          // keep main nav hidden
+					nav.classList.add("is-hidden"); // keep main nav hidden
 				},
 				/* leave zone back upward → close */
 				onLeaveBack() {
@@ -1248,11 +1251,11 @@ function main() {
 					ease: "power2.out",
 				});
 			};
-			
+
 			const onSubBtn = () => {
 				if (!linksOpen) {
 					// OPEN: Animate from baseH to baseH + linksH
-					subnav.style.height = getComputedStyle(subnav).getPropertyValue('--sub-nav-h');
+					subnav.style.height = getComputedStyle(subnav).getPropertyValue("--sub-nav-h");
 					gsap.to(subnav, {
 						height: subnav.scrollHeight + "px", // Animate to measured open height
 						duration: 0.4,
@@ -1262,7 +1265,6 @@ function main() {
 							linksOpen = true;
 						},
 					});
-
 				} else {
 					// CLOSE: Animate from current height to baseH (the var)
 					gsap.to(subnav, {
@@ -1286,7 +1288,6 @@ function main() {
 
 			subBtn.addEventListener("click", onSubBtn);
 		}
-
 
 		/* ─────────────────────── 3) matchMedia variants ───────────────────────── */
 		const mm = gsap.matchMedia();
@@ -1315,7 +1316,8 @@ function main() {
 			}
 
 			nav.querySelectorAll(".nav_link").forEach((link) => {
-				const name = link.dataset.panel || [...link.classList].find((c) => c.startsWith("is-"))?.slice(3);
+				const name =
+					link.dataset.panel || [...link.classList].find((c) => c.startsWith("is-"))?.slice(3);
 				const pane = nav.querySelector(`.nav_content.is-${name}`);
 
 				if (pane) {
@@ -1392,16 +1394,21 @@ function main() {
 
 				const fullH = CSS.supports("height:100dvh") ? "100dvh" : "100vh";
 
-				gsap.timeline()
+				gsap
+					.timeline()
 					.to(icons[0], { autoAlpha: open ? 1 : 0, duration: 0.2 }, 0)
 					.to(icons[1], { autoAlpha: open ? 0 : 1, duration: 0.2 }, 0)
-					.to(drawer, {
-						height: open ? fullH : 0,
-						autoAlpha: open ? 1 : 0,
-						display: open ? "block" : "none",
-						duration: open ? 0.4 : 0.3,
-						ease: open ? "power2.out" : "power2.in",
-					}, 0);
+					.to(
+						drawer,
+						{
+							height: open ? fullH : 0,
+							autoAlpha: open ? 1 : 0,
+							display: open ? "block" : "none",
+							duration: open ? 0.4 : 0.3,
+							ease: open ? "power2.out" : "power2.in",
+						},
+						0
+					);
 			};
 			btn.addEventListener("click", onBtn);
 
@@ -1440,8 +1447,6 @@ function main() {
 			};
 		});
 	};
-
-
 
 	tyx.functions.magicModal = function () {
 		//check we have some .magic-card elements
