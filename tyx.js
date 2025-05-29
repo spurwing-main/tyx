@@ -480,7 +480,7 @@ function main() {
 		const tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: ".s-home-intro",
-				start: "bottom 60%",
+				start: "bottom 25%",
 				// end: "bottom-=400 top",
 				toggleActions: "play none none reverse",
 			},
