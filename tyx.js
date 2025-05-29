@@ -74,6 +74,7 @@ function main() {
 			return () => {};
 		});
 	};
+
 	tyx.functions.homeHero = function () {
 		const mediaElem = document.querySelector(".home-hero_media-wrap");
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
@@ -473,6 +474,7 @@ function main() {
 			once: true, // Ensure animation happens only once
 		});
 	};
+
 	tyx.functions.changeIntroColors = function () {
 		if (!document.querySelector(".s-home-intro")) return;
 		const tl = gsap.timeline({
@@ -505,6 +507,7 @@ function main() {
 		// 	0
 		// );
 	};
+
 	tyx.functions.playVideosOnHover = function () {
 		const triggers = document.querySelectorAll(".video-hover-trigger");
 		triggers.forEach((trigger) => {
@@ -911,7 +914,7 @@ function main() {
 				scrollTrigger: {
 					trigger: section,
 					start: "bottom 95%",
-					end: "bottom 40%",
+					end: "bottom 70%",
 					scrub: true,
 					// markers: true,
 				},
@@ -1107,7 +1110,19 @@ function main() {
 			gsap.set(media, { scale: 0.75, yPercent: 30 }); // CSS hides media to avoid FOUC
 			gsap.fromTo(media, { autoAlpha: 0, duration: 0.5 }, { autoAlpha: 1 }); // then show
 
-			let q = gsap.utils.selector(".hero_split-h1");
+			let sectionSelector = gsap.utils.selector(section);
+			let q = gsap.utils.selector(".hero_split-heading");
+
+			// initally center the split headings - we have to do this with GSAP to get the transforms working properly
+			gsap.set(".hero_split-title-wrap", {
+				xPercent: 50,
+			});
+			gsap.set(".hero_split-title-inner", {
+				xPercent: -50,
+			});
+
+			// hide the overlay once transforms are set
+			gsap.to(sectionSelector(".fancy-hero_overlay"), { autoAlpha: 0 });
 
 			const tl = gsap.timeline({
 				scrollTrigger: {
@@ -1116,24 +1131,45 @@ function main() {
 			});
 			tl.timeScale(0.75); // slow down the timeline
 			// tl.set(media, { autoAlpha: 1 }); // CSS hides media to avoid FOUC
+
+			// move each split heading and its inner element
 			tl.to(
-				q(":nth-child(even)"),
+				q(".hero_split-title-wrap.is-1"),
 				{
-					translateX: "-100vw",
+					xPercent: 100,
 					duration: 1.5,
 					ease: "power3.out",
 				},
 				"0.05"
 			);
 			tl.to(
-				q(":nth-child(odd)"),
+				q(".hero_split-title-inner.is-1"),
 				{
-					translateX: "100vw",
+					xPercent: -100,
 					duration: 1.5,
 					ease: "power3.out",
 				},
 				"0.05"
 			);
+			tl.to(
+				q(".hero_split-title-wrap.is-2"),
+				{
+					xPercent: 0,
+					duration: 1.5,
+					ease: "power3.out",
+				},
+				"0.05"
+			);
+			tl.to(
+				q(".hero_split-title-inner.is-2"),
+				{
+					xPercent: 0,
+					duration: 1.5,
+					ease: "power3.out",
+				},
+				"0.05"
+			);
+
 			tl.to(
 				".breadcrumbs",
 				{
@@ -1161,10 +1197,6 @@ function main() {
 			}
 		});
 	};
-
-	/* ---------------------------------------------------------------------------
-	   TYX Nav – hover-driven desktop, click-driven mobile + sub-nav companion
-	--------------------------------------------------------------------------- */
 
 	tyx.functions.nav = function () {
 		/* ───────────────────────── CONFIG ───────────────────────── */
@@ -1691,6 +1723,362 @@ function main() {
 		return [dataSrc, videoSource];
 	};
 
+	tyx.helperFunctions.horizontalLoop = function (items, config) {
+		let timeline;
+		items = gsap.utils.toArray(items);
+		config = config || {};
+		gsap.context(() => {
+			// use a context so that if this is called from within another context or a gsap.matchMedia(), we can perform proper cleanup like the "resize" event handler on the window
+			let onChange = config.onChange,
+				lastIndex = 0,
+				tl = gsap.timeline({
+					repeat: config.repeat,
+					onUpdate:
+						onChange &&
+						function () {
+							let i = tl.closestIndex();
+							if (lastIndex !== i) {
+								lastIndex = i;
+								onChange(items[i], i);
+							}
+						},
+					paused: config.paused,
+					defaults: { ease: "none" },
+					onReverseComplete: () => tl.totalTime(tl.rawTime() + tl.duration() * 100),
+				}),
+				length = items.length,
+				startX = items[0].offsetLeft,
+				times = [],
+				widths = [],
+				spaceBefore = [],
+				xPercents = [],
+				curIndex = 0,
+				indexIsDirty = false,
+				center = config.center,
+				pixelsPerSecond = (config.speed || 1) * 100,
+				snap = config.snap === false ? (v) => v : gsap.utils.snap(config.snap || 1), // some browsers shift by a pixel to accommodate flex layouts, so for example if width is 20% the first element's width might be 242px, and the next 243px, alternating back and forth. So we snap to 5 percentage points to make things look more natural
+				timeOffset = 0,
+				container =
+					center === true
+						? items[0].parentNode
+						: gsap.utils.toArray(center)[0] || items[0].parentNode,
+				totalWidth,
+				getTotalWidth = () =>
+					items[length - 1].offsetLeft +
+					(xPercents[length - 1] / 100) * widths[length - 1] -
+					startX +
+					spaceBefore[0] +
+					items[length - 1].offsetWidth * gsap.getProperty(items[length - 1], "scaleX") +
+					(parseFloat(config.paddingRight) || 0),
+				populateWidths = () => {
+					let b1 = container.getBoundingClientRect(),
+						b2;
+
+					// Reset all items to their natural position first
+					gsap.set(items, {
+						x: 0,
+						xPercent: 0,
+						clearProps: "transform",
+					});
+
+					// Force a reflow
+					items[0].offsetWidth;
+
+					// Get the container's new position after reset
+					startX = items[0].offsetLeft;
+
+					items.forEach((el, i) => {
+						// Get the natural width without any transforms
+						widths[i] = el.offsetWidth;
+
+						// Calculate the space between items
+						b2 = el.getBoundingClientRect();
+						spaceBefore[i] = b2.left - (i ? b1.right : b1.left);
+						b1 = b2;
+
+						// Reset xPercent to 0 for accurate calculations
+						xPercents[i] = 0;
+					});
+
+					// Set all items to their calculated positions
+					gsap.set(items, {
+						xPercent: (i) => xPercents[i],
+					});
+
+					// Calculate total width after all items are positioned
+					totalWidth = getTotalWidth();
+				},
+				timeWrap,
+				populateOffsets = () => {
+					timeOffset = center ? (tl.duration() * (container.offsetWidth / 2)) / totalWidth : 0;
+					center &&
+						times.forEach((t, i) => {
+							times[i] = timeWrap(
+								tl.labels["label" + i] + (tl.duration() * widths[i]) / 2 / totalWidth - timeOffset
+							);
+						});
+				},
+				getClosest = (values, value, wrap) => {
+					let i = values.length,
+						closest = 1e10,
+						index = 0,
+						d;
+					while (i--) {
+						d = Math.abs(values[i] - value);
+						if (d > wrap / 2) {
+							d = wrap - d;
+						}
+						if (d < closest) {
+							closest = d;
+							index = i;
+						}
+					}
+					return index;
+				},
+				populateTimeline = () => {
+					let i, item, curX, distanceToStart, distanceToLoop;
+					tl.clear();
+					for (i = 0; i < length; i++) {
+						item = items[i];
+						curX = (xPercents[i] / 100) * widths[i];
+						distanceToStart = item.offsetLeft + curX - startX + spaceBefore[0];
+						distanceToLoop = distanceToStart + widths[i] * gsap.getProperty(item, "scaleX");
+						tl.to(
+							item,
+							{
+								xPercent: snap(((curX - distanceToLoop) / widths[i]) * 100),
+								duration: distanceToLoop / pixelsPerSecond,
+							},
+							0
+						)
+							.fromTo(
+								item,
+								{
+									xPercent: snap(((curX - distanceToLoop + totalWidth) / widths[i]) * 100),
+								},
+								{
+									xPercent: xPercents[i],
+									duration: (curX - distanceToLoop + totalWidth - curX) / pixelsPerSecond,
+									immediateRender: false,
+								},
+								distanceToLoop / pixelsPerSecond
+							)
+							.add("label" + i, distanceToStart / pixelsPerSecond);
+						times[i] = distanceToStart / pixelsPerSecond;
+					}
+					timeWrap = gsap.utils.wrap(0, tl.duration());
+				},
+				refresh = (deep) => {
+					let progress = tl.progress();
+					tl.progress(0, true);
+
+					// Reset only the x transforms while preserving other properties
+					gsap.set(items, {
+						x: 0,
+						xPercent: 0,
+					});
+
+					// Force a reflow
+					items[0].offsetWidth;
+
+					populateWidths();
+					deep && populateTimeline();
+					populateOffsets();
+
+					if (deep && tl.draggable && tl.paused()) {
+						tl.time(times[curIndex], true);
+					} else {
+						tl.progress(progress, true);
+					}
+				},
+				onResize = () => {
+					if (window.resizeTimeout) clearTimeout(window.resizeTimeout);
+					window.resizeTimeout = setTimeout(() => {
+						refresh(true);
+					}, 100);
+				},
+				proxy;
+			gsap.set(items, { x: 0 });
+			populateWidths();
+			populateTimeline();
+			populateOffsets();
+			window.addEventListener("resize", onResize);
+			function toIndex(index, vars) {
+				vars = vars || {};
+				Math.abs(index - curIndex) > length / 2 && (index += index > curIndex ? -length : length); // always go in the shortest direction
+				let newIndex = gsap.utils.wrap(0, length, index),
+					time = times[newIndex];
+				if (time > tl.time() !== index > curIndex && index !== curIndex) {
+					// if we're wrapping the timeline's playhead, make the proper adjustments
+					time += tl.duration() * (index > curIndex ? 1 : -1);
+				}
+				if (time < 0 || time > tl.duration()) {
+					vars.modifiers = { time: timeWrap };
+				}
+				curIndex = newIndex;
+				vars.overwrite = true;
+				gsap.killTweensOf(proxy);
+				return vars.duration === 0 ? tl.time(timeWrap(time)) : tl.tweenTo(time, vars);
+			}
+			tl.toIndex = (index, vars) => toIndex(index, vars);
+			tl.closestIndex = (setCurrent) => {
+				let index = getClosest(times, tl.time(), tl.duration());
+				if (setCurrent) {
+					curIndex = index;
+					indexIsDirty = false;
+				}
+				return index;
+			};
+			tl.current = () => (indexIsDirty ? tl.closestIndex(true) : curIndex);
+			tl.next = (vars) => toIndex(tl.current() + 1, vars);
+			tl.previous = (vars) => toIndex(tl.current() - 1, vars);
+			tl.times = times;
+			tl.progress(1, true).progress(0, true); // pre-render for performance
+			if (config.reversed) {
+				tl.vars.onReverseComplete();
+				tl.reverse();
+			}
+			if (config.draggable && typeof Draggable === "function") {
+				proxy = document.createElement("div");
+				let wrap = gsap.utils.wrap(0, 1),
+					ratio,
+					startProgress,
+					draggable,
+					dragSnap,
+					lastSnap,
+					initChangeX,
+					wasPlaying,
+					align = () => tl.progress(wrap(startProgress + (draggable.startX - draggable.x) * ratio)),
+					syncIndex = () => tl.closestIndex(true);
+				typeof InertiaPlugin === "undefined" &&
+					console.warn(
+						"InertiaPlugin required for momentum-based scrolling and snapping. https://greensock.com/club"
+					);
+				draggable = Draggable.create(proxy, {
+					trigger: items[0].parentNode,
+					type: "x",
+					onPressInit() {
+						let x = this.x;
+						gsap.killTweensOf(tl);
+						wasPlaying = !tl.paused();
+						tl.pause();
+						startProgress = tl.progress();
+						refresh();
+						ratio = 1 / totalWidth;
+						initChangeX = startProgress / -ratio - x;
+						gsap.set(proxy, { x: startProgress / -ratio });
+					},
+					onDrag: align,
+					onThrowUpdate: align,
+					overshootTolerance: 0,
+					inertia: true,
+					...config.draggableOptions,
+					snap(value) {
+						//note: if the user presses and releases in the middle of a throw, due to the sudden correction of proxy.x in the onPressInit(), the velocity could be very large, throwing off the snap. So sense that condition and adjust for it. We also need to set overshootTolerance to 0 to prevent the inertia from causing it to shoot past and come back
+						if (Math.abs(startProgress / -ratio - this.x) < 10) {
+							return lastSnap + initChangeX;
+						}
+						let time = -(value * ratio) * tl.duration(),
+							wrappedTime = timeWrap(time),
+							snapTime = times[getClosest(times, wrappedTime, tl.duration())],
+							dif = snapTime - wrappedTime;
+						Math.abs(dif) > tl.duration() / 2 && (dif += dif < 0 ? tl.duration() : -tl.duration());
+						lastSnap = (time + dif) / tl.duration() / -ratio;
+						return lastSnap;
+					},
+					onRelease() {
+						syncIndex();
+						draggable.isThrowing && (indexIsDirty = true);
+					},
+					onThrowComplete: () => {
+						syncIndex();
+						align;
+						gsap.delayedCall(0.01, () => tl.play());
+					},
+				})[0];
+				tl.draggable = draggable;
+			}
+			tl.closestIndex(true);
+			lastIndex = curIndex;
+			onChange && onChange(items[curIndex], curIndex);
+
+			tl.refresh = refresh; // expose refresh() method
+
+			timeline = tl;
+			return () => window.removeEventListener("resize", onResize); // cleanup
+		});
+
+		return timeline;
+	};
+
+	tyx.functions.chaosMarqueeV2 = function () {
+		const wrapper = document.querySelector(".chaos-marquee-v2_track");
+		if (!wrapper) return;
+		const slides = [...wrapper.querySelector(".chaos-marquee-v2_content").children];
+		if (!slides.length) return;
+
+		const mm = gsap.matchMedia();
+		const breakpoint = tyx.breakpoints.tab;
+		let loop;
+
+		mm.add(
+			{
+				isDesktop: `(min-width: ${breakpoint}px)`,
+				isMobile: `(max-width: ${breakpoint - 1}px)`,
+				reduceMotion: "(prefers-reduced-motion: reduce)",
+			},
+			(context) => {
+				let { isDesktop, isMobile, reduceMotion } = context.conditions;
+
+				if (reduceMotion) {
+					return () => {}; // Skip slider entirely
+				}
+
+				// Clean up old loop if re-init (in case of breakpoint change)
+				if (loop && typeof loop.kill === "function") loop.kill();
+
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => {
+						loop = tyx.helperFunctions.horizontalLoop(slides, {
+							draggable: true,
+							draggableOptions: {
+								dragResistance: isDesktop ? 0.75 : 0.25, // 0 to 1
+								// add some speed limits
+								minDuration: isDesktop ? 0.3 : 0.1,
+								maxDuration: isDesktop ? 1.2 : 1.2,
+							},
+							speed: isDesktop ? 1.2 : 0.6,
+							center: true,
+							onChange: (element, index) => {},
+						});
+						loop.refresh(true);
+
+						if (!isMobile) {
+							loop.play();
+						}
+					});
+				});
+
+				// Return a cleanup function for breakpoint switch
+				return () => {
+					if (loop && typeof loop.kill === "function") {
+						loop.kill();
+					}
+					console.log("killing loop");
+				};
+			}
+		);
+
+		// detect visibility changes and force resync
+		document.addEventListener("visibilitychange", () => {
+			if (document.visibilityState === "visible" && loop) {
+				loop.pause(0); // force a playhead reset to be safe
+				loop.progress(1, true).progress(0, true); // pre-render
+				requestAnimationFrame(() => loop.play());
+			}
+		});
+	};
+
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.handleVideos();
@@ -1715,7 +2103,11 @@ function main() {
 	tyx.functions.fancyHero();
 	tyx.functions.nav();
 	tyx.functions.magicModal();
+	//tyx.functions.chaosMarqueeV2();
+
+	// parallax functions need to be called at end once GSAP has moved things around, otherwise heights are off - especially benefits()
 	ScrollTrigger.refresh();
+
 	tyx.functions.parallax();
 	tyx.functions.parallaxBasic();
 
