@@ -821,14 +821,23 @@ function main() {
 	};
 
 	tyx.functions.textAnim = function () {
-		const fromColor = "#696969";
-		const toColor = "#ffffff";
+		let fromColor = "#696969";
+		let toColor = "#ffffff";
 
 		document.querySelectorAll(".text-anim").forEach((el) => {
 			const split = new SplitText(el, {
 				type: "words, chars",
 				tag: "span",
 			});
+
+			const parent5050 = el.closest(".s-5050[data-wf--5050--variant]");
+			console.log("parent5050", parent5050);
+			if (parent5050) {
+				if (parent5050.getAttribute("data-wf--5050--variant") === "mid") {
+					fromColor = "#2c2c7a";
+					console.log("mid variant detected, changing fromColor to", fromColor);
+				}
+			}
 
 			gsap.set(el, { opacity: 1 });
 
