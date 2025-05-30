@@ -830,6 +830,7 @@ function main() {
 				tag: "span",
 			});
 
+			/* temporary bit to demo color change for 5050 mid variant */
 			const parent5050 = el.closest(".s-5050[data-wf--5050--variant]");
 			console.log("parent5050", parent5050);
 			if (parent5050) {
