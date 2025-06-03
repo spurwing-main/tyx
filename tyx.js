@@ -821,9 +821,6 @@ function main() {
 	};
 
 	tyx.functions.textAnim = function () {
-		const fromColor = "#696969";
-		const toColor = "#ffffff";
-
 		document.querySelectorAll(".text-anim").forEach((el) => {
 			const split = new SplitText(el, {
 				type: "words, chars",
@@ -843,9 +840,9 @@ function main() {
 				})
 				.fromTo(
 					split.words,
-					{ color: fromColor },
+					{ opacity: 0 },
 					{
-						color: toColor,
+						opacity: 1,
 						duration: 4,
 						ease: "cubic.out",
 						stagger: { each: 0.4 },
