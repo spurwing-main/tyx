@@ -1196,6 +1196,33 @@ function main() {
 				);
 			}
 		});
+
+		// ✅ Define a reusable function for background color logic
+		function updateBackgroundColor() {
+			const viewportHeight = window.innerHeight;
+			let activeFound = false;
+
+			sections.forEach((section) => {
+				const rect = section.getBoundingClientRect();
+				const topRatio = rect.top / viewportHeight;
+				const bottomRatio = rect.bottom / viewportHeight;
+
+				const isInRange = bottomRatio >= -0.25 && topRatio <= 1.25;
+
+				if (isInRange && !activeFound) {
+					const bgColor = window.getComputedStyle(section).backgroundColor;
+					document.querySelector(".page-wrap").style.backgroundColor = bgColor;
+					activeFound = true;
+				}
+			});
+
+			if (!activeFound) {
+				document.querySelector(".page-wrap").style.backgroundColor = "transparent";
+			}
+		}
+
+		window.addEventListener("scroll", updateBackgroundColor);
+		updateBackgroundColor();
 	};
 
 	tyx.functions.nav = function () {
