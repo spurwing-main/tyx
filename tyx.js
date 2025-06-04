@@ -35,175 +35,179 @@ function main() {
 		};
 	})();
 
-	/* ------------------------------------------------------------------ */
-/*  Tiny string helpers                                               */
-/* ------------------------------------------------------------------ */
-tyx.helperFunctions.cleanCloudinaryURL = (u = "") => {
-	const cleaned = u.split("?")[0].replace(/\/upload\/.*?\/v(\d+)\//, "/upload/v$1/");
-	if (!cleaned.includes("/upload/")) console.warn("[cleanCloudinaryURL] Unexpected:", u);
-	return cleaned;
-  };
-  
-  tyx.helperFunctions.generatePosterURL = (raw) => {
-	const [base, rest] = tyx.helperFunctions.cleanCloudinaryURL(raw).split("/upload/");
-	if (!rest) return console.warn("[generatePosterURL] Bad Cloudinary URL:", raw), "";
-	const id = rest.split(".").slice(0, -1).join(".");
-	const url = `${base}/upload/so_auto,q_auto/${id}.jpg`;
-	console.log("[generatePosterURL]", url);
-	return url;
-  };
-  
-  tyx.helperFunctions.generateVideoURL = (raw) => {
-	const [base, rest] = tyx.helperFunctions.cleanCloudinaryURL(raw).split("/upload/");
-	if (!rest) return console.warn("[generateVideoURL] Bad Cloudinary URL:", raw), "";
-	const id = rest.split(".").slice(0, -1).join(".");
-	const url = `${base}/upload/c_scale,w_1280,fps_15-30,ac_none,q_auto:eco,f_auto:video/${id}.mp4`;
-	console.log("[generateVideoURL]", url);
-	return url;
-  };
-  
-  /* ------------------------------------------------------------------ */
-  /*  Main                                                               */
-  /* ------------------------------------------------------------------ */
-  tyx.functions.handleVideos = () => {
-	/* 0.  Global switch (default = lazy) */
-	if (typeof tyx.lazyLoadVideos === "undefined") tyx.lazyLoadVideos = true;
-	console.log("[handleVideos] Lazy loading:", tyx.lazyLoadVideos);
-  
-	/* 1.  Collect <video> elements that use data-src */
-	const videos = [...document.querySelectorAll("video source[data-src]")].map(
-	  (src) => src.parentElement
-	);
-	if (!videos.length) return console.log("[handleVideos] No matching videos");
-  
-	/* 2.  Feature detection */
-	const useLazy = tyx.lazyLoadVideos && "IntersectionObserver" in window;
-	console.log(`[handleVideos] Found ${videos.length} video(s) | Lazy mode:`, useLazy);
-  
-	/* 3.  Observers */
-	const rootMargin  = "0px 0px 200px 0px";
-	const playThresh  = 0.5;
-	const loadObs  = useLazy ? new IntersectionObserver(onLoad,  { rootMargin })          : null;
-	const playObs  = useLazy ? new IntersectionObserver(onPlay, { threshold: playThresh }) : null;
-  
-	/* 4.  Walk every video */
-	for (const video of videos) {
-	  const srcEl       = video.querySelector("source");
-	  const dataSrc     = srcEl.dataset.src;
-	  const isCloud     = dataSrc.includes("res.cloudinary.com");
-  
-	  const poster      = isCloud ? tyx.helperFunctions.generatePosterURL(dataSrc) : video.poster;
-	  const finalSrc    = isCloud ? tyx.helperFunctions.generateVideoURL(dataSrc) : dataSrc;
-  
-	  if (poster) video.poster = poster;
-	  video._lazySrc = finalSrc;
-	  video.preload  = "none";
-	  video.muted    = true;
-  
-	  /* 4-A  Decide hover triggers in precedence order
-		 1. sibling (if parent exists) > 2. parent > 3. video > 4. none           */
-	  const parentHover = video.closest("[play-on-hover-parent]");
-	  const siblingEls  = parentHover
-		? [...parentHover.querySelectorAll("[play-on-hover-sibling]")]
-			.filter((el) => el !== video && !el.contains(video))
-		: [];
-	  let triggers = [];
-  
-	  if (siblingEls.length) {
-		triggers = siblingEls;
-	  } else if (parentHover) {
-		triggers = [parentHover];
-	  } else if (video.getAttribute("play-on-hover") === "hover") {
-		triggers = [video];
-	  }
-  
-	  const hoverOnly = Boolean(triggers.length);
-  
-	  console.log(
-		"[handleVideos]",
-		dataSrc,
-		"\n  • Poster:", poster,
-		"\n  • Final :", finalSrc,
-		"\n  • Hover trigger(s):",
-		triggers.length ? triggers.map((e) => e.tagName).join(", ") : "— none —",
-		"\n  •", !useLazy ? "Load NOW" : "Lazy-load wait"
-	  );
-  
-	  /* 4-B  Wire up loading/hover behaviour */
-	  if (!useLazy) {
-		loadNow(video);
-		if (!hoverOnly) playOnScroll(video);
-	  } else {
-		loadObs.observe(video);
-		if (hoverOnly) attachHover(video, triggers);
-	  }
-	}
-  
-	/* ----------------------------------------------------------------
-	   Helper functions
-	------------------------------------------------------------------*/
-	function loadNow(v) {
-	  const s = v.querySelector("source");
-	  s.src   = v._lazySrc;
-	  v.load();
-	  console.log("[loadNow] Loaded:", s.src);
-	}
-  
-	function onLoad(entries, obs) {
-	  for (const { isIntersecting, target: v } of entries) {
-		if (!isIntersecting || v.dataset.loaded) continue;
-		console.log("[onLoad] → loading video");
-		loadNow(v);
-		v.dataset.loaded = "1";
-		obs.unobserve(v);
-  
-		if (!v.autoplay) v.addEventListener("loadeddata", () => (v.pause(), console.log("[onLoad] Paused after first frame")), { once: true });
-		if (v.getAttribute("play-on-hover") !== "hover") playObs.observe(v);
-	  }
-	}
-  
-	function onPlay(entries) {
-	  for (const { intersectionRatio, target: v } of entries) {
-		if (!v.dataset.loaded) continue;
-		intersectionRatio >= playThresh ? v.play() : v.pause();
-		console.log("[onPlay]", intersectionRatio >= playThresh ? "Playing" : "Pausing");
-	  }
-	}
-  
-	function attachHover(video, trigEls) {
-	  if (video.dataset.hoverAttached) return; // already done
-	  video.dataset.hoverAttached = "1";
-  
-	  let playing = false;
-	  video.addEventListener("playing", () => (playing = true));
-	  video.addEventListener("pause",   () => (playing = false));
-  
-	  trigEls.forEach((el) => {
-		el.addEventListener("mouseenter", () => {
-		  console.log("[hover] enter");
-		  if (!video.dataset.loaded) loadNow(video), (video.dataset.loaded = "1");
-		  if (video.paused && !playing) video.play();
-		});
-		el.addEventListener("mouseleave", () => {
-		  console.log("[hover] leave");
-		  if (!video.paused && playing) video.pause();
-		});
-	  });
-	}
-  
-	function playOnScroll(v) {
-	  const onScroll = () => {
-		const r  = v.getBoundingClientRect();
-		const ok = r.top < window.innerHeight * (1 - playThresh) && r.bottom > window.innerHeight * playThresh;
-		ok ? v.play() : v.pause();
+	tyx.helperFunctions.cleanCloudinaryURL = (u = "") =>
+		u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
+	  
+	  tyx.helperFunctions.parseCloudinaryURL = (raw) => {
+		/* https://res.cloudinary.com/<cloud>/video/upload/v123/xxxxx.mp4 */
+		const m = tyx.helperFunctions
+		  .cleanCloudinaryURL(raw)
+		  .match(/^(https:\/\/[^/]+\/[^/]+)\/video\/upload\/v(\d+)\/(.+)$/);
+		if (!m) return null;
+		const [, base, version, rest] = m;
+		const dot = rest.lastIndexOf(".");
+		return {
+		  base,
+		  version,
+		  publicId: dot === -1 ? rest : rest.slice(0, dot),
+		};
 	  };
-	  window.addEventListener("scroll", onScroll, { passive: true });
-	  onScroll();
-	}
-  };
-  
-  
-  
+	  
+	  tyx.helperFunctions.buildTransforms = (dataSrc) => {
+		const p = tyx.helperFunctions.parseCloudinaryURL(dataSrc);
+		if (!p) return null;
+		const { base, version, publicId } = p;
+		const manip    = "c_scale,w_1280,fps_15-30,ac_none";
+		const compress = "q_auto:eco";
+		return {
+		  poster : `${base}/video/upload/so_auto,${compress}/v${version}/${publicId}.jpg`,
+		  webm   : `${base}/video/upload/${manip},${compress},f_webm/v${version}/${publicId}.webm`,
+		  mp4    : `${base}/video/upload/${manip},${compress},f_mp4/v${version}/${publicId}.mp4`,
+		};
+	  };
+	  
+	  tyx.helperFunctions.setSourceType = (s) => {
+		const needed = /\.mp4($|\?)/i.test(s.src) ? "video/mp4" : "video/webm";
+		s.type !== needed && s.setAttribute("type", needed);
+	  };
+	  
+	  /* ------------------------------------------------------------------ */
+	  /*  HOVER-TRIGGER discovery                                           */
+	  /* ------------------------------------------------------------------ */
+	  const findHoverTriggers = (video) => {
+		/* 1️⃣ ancestor with play-on-hover-parent                         */
+		const parent = video.closest("[play-on-hover-parent]");
+		if (parent) {
+		  return [
+			parent,
+			...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(
+			  (n) => !n.contains(video)
+			),
+		  ];
+		}
+	  
+		/* 2️⃣ explicit attribute on the <video> itself                   */
+		if (video.getAttribute("play-on-hover") === "hover") return [video];
+	  
+		/* 3️⃣ None found → scroll-play only                              */
+		return [];
+	  };
+
+	  tyx.functions.handleVideos = () => {
+		console.log("🐾 handleVideos – start");
+	  
+		if (typeof tyx.lazyLoadVideos === "undefined") tyx.lazyLoadVideos = true;
+	  
+		const videos = [...document.querySelectorAll("video")].filter((v) =>
+		  v.querySelector("source[data-src]")
+		);
+		if (!videos.length) return console.log("🐾 handleVideos – no videos found");
+	  
+		const canWebM = !!document
+		  .createElement("video")
+		  .canPlayType('video/webm; codecs="vp9"');
+		const useLazy = tyx.lazyLoadVideos && "IntersectionObserver" in window;
+	  
+		const rootMargin = "0px 0px 200px 0px";
+		const playT      = 0.5;
+		const loadObs    = useLazy ? new IntersectionObserver(onLoad ,{ rootMargin })       : null;
+		const playObs    = useLazy ? new IntersectionObserver(onPlay ,{ threshold: playT }) : null;
+	  
+		/* ----------------------------------------------------------------*/
+		videos.forEach((video) => {
+		  if (video.dataset._tyxInit) return;
+		  video.dataset._tyxInit = "1";
+	  
+		  /* transform **every** source carrying data-src                   */
+		  const sources = [...video.querySelectorAll("source[data-src]")];
+		  if (!sources.length) return;
+	  
+		  sources.forEach((s) => {
+			const t = tyx.helperFunctions.buildTransforms(s.dataset.src);
+			if (!t) return;                  // malformed URL – skip this <source>
+	  
+			s.src = canWebM ? t.webm : t.mp4;
+			tyx.helperFunctions.setSourceType(s);
+			s.removeAttribute("data-src");
+			video.poster = t.poster;
+		  });
+	  
+		  /* remove stray src attr on <video> itself                        */
+		  video.removeAttribute("src");
+		  video.preload = "none";
+		  video.muted   = true;
+	  
+		  const hoverEls = findHoverTriggers(video);
+		  const hoverOnly= hoverEls.length > 0;
+	  
+		  console.log(
+			"🐾 video transformed",
+			{ hoverOnly, hoverEls: hoverEls.map((n) => n.tagName) }
+		  );
+	  
+		  if (!useLazy) {
+			loadNow(video);
+			if (!hoverOnly) playOnScroll(video);
+		  } else {
+			loadObs.observe(video);
+			if (hoverOnly) attachHover(video, hoverEls);
+		  }
+		});
+	  
+		/* ------------------ internal helpers --------------------------- */
+		function loadNow(v) {
+		  v.load();
+		  v.dataset.loaded = "1";
+		}
+	  
+		function onLoad(entries, obs) {
+		  entries.forEach(({ isIntersecting, target }) => {
+			if (!isIntersecting || target.dataset.loaded) return;
+			loadNow(target);
+			obs.unobserve(target);
+	  
+			if (!target.autoplay)
+			  target.addEventListener("loadeddata", () => target.pause(), { once: true });
+	  
+			if (findHoverTriggers(target).length === 0) playObs.observe(target);
+		  });
+		}
+	  
+		function onPlay(entries) {
+		  entries.forEach(({ intersectionRatio, target }) => {
+			if (!target.dataset.loaded) return;
+			intersectionRatio >= playT ? target.play() : target.pause();
+		  });
+		}
+	  
+		function attachHover(video, els) {
+		  let playing = false;
+		  video.addEventListener("playing", () => (playing = true));
+		  video.addEventListener("pause",   () => (playing = false));
+	  
+		  els.forEach((el) => {
+			el.addEventListener("mouseenter", () => {
+			  if (!video.dataset.loaded) loadNow(video);
+			  if (video.paused && !playing) video.play();
+			});
+			el.addEventListener("mouseleave", () => {
+			  if (!video.paused && playing) video.pause();
+			});
+		  });
+		}
+	  
+		function playOnScroll(v) {
+		  const fn = () => {
+			const r  = v.getBoundingClientRect();
+			const ok = r.top < innerHeight * (1 - playT) &&
+					   r.bottom > innerHeight * playT;
+			ok ? v.play() : v.pause();
+		  };
+		  addEventListener("scroll", fn, { passive: true });
+		  fn();
+		}
+	  };
+
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
 
