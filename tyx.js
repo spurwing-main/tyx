@@ -35,6 +35,176 @@ function main() {
 		};
 	})();
 
+	/* ------------------------------------------------------------------ */
+/*  Tiny string helpers                                               */
+/* ------------------------------------------------------------------ */
+tyx.helperFunctions.cleanCloudinaryURL = (u = "") => {
+	const cleaned = u.split("?")[0].replace(/\/upload\/.*?\/v(\d+)\//, "/upload/v$1/");
+	if (!cleaned.includes("/upload/")) console.warn("[cleanCloudinaryURL] Unexpected:", u);
+	return cleaned;
+  };
+  
+  tyx.helperFunctions.generatePosterURL = (raw) => {
+	const [base, rest] = tyx.helperFunctions.cleanCloudinaryURL(raw).split("/upload/");
+	if (!rest) return console.warn("[generatePosterURL] Bad Cloudinary URL:", raw), "";
+	const id = rest.split(".").slice(0, -1).join(".");
+	const url = `${base}/upload/so_auto,q_auto/${id}.jpg`;
+	console.log("[generatePosterURL]", url);
+	return url;
+  };
+  
+  tyx.helperFunctions.generateVideoURL = (raw) => {
+	const [base, rest] = tyx.helperFunctions.cleanCloudinaryURL(raw).split("/upload/");
+	if (!rest) return console.warn("[generateVideoURL] Bad Cloudinary URL:", raw), "";
+	const id = rest.split(".").slice(0, -1).join(".");
+	const url = `${base}/upload/q_auto,f_webm/${id}.webm`;
+	console.log("[generateVideoURL]", url);
+	return url;
+  };
+  
+  /* ------------------------------------------------------------------ */
+  /*  Main                                                               */
+  /* ------------------------------------------------------------------ */
+  tyx.functions.handleVideos = () => {
+	/* 0.  Global switch (default = lazy) */
+	if (typeof tyx.lazyLoadVideos === "undefined") tyx.lazyLoadVideos = true;
+	console.log("[handleVideos] Lazy loading:", tyx.lazyLoadVideos);
+  
+	/* 1.  Collect <video> elements that use data-src */
+	const videos = [...document.querySelectorAll("video source[data-src]")].map(
+	  (src) => src.parentElement
+	);
+	if (!videos.length) return console.log("[handleVideos] No matching videos");
+  
+	/* 2.  Feature detection */
+	const useLazy = tyx.lazyLoadVideos && "IntersectionObserver" in window;
+	console.log(`[handleVideos] Found ${videos.length} video(s) | Lazy mode:`, useLazy);
+  
+	/* 3.  Observers */
+	const rootMargin  = "0px 0px 200px 0px";
+	const playThresh  = 0.5;
+	const loadObs  = useLazy ? new IntersectionObserver(onLoad,  { rootMargin })          : null;
+	const playObs  = useLazy ? new IntersectionObserver(onPlay, { threshold: playThresh }) : null;
+  
+	/* 4.  Walk every video */
+	for (const video of videos) {
+	  const srcEl       = video.querySelector("source");
+	  const dataSrc     = srcEl.dataset.src;
+	  const isCloud     = dataSrc.includes("res.cloudinary.com");
+  
+	  const poster      = isCloud ? tyx.helperFunctions.generatePosterURL(dataSrc) : video.poster;
+	  const finalSrc    = isCloud ? tyx.helperFunctions.generateVideoURL(dataSrc) : dataSrc;
+  
+	  if (poster) video.poster = poster;
+	  video._lazySrc = finalSrc;
+	  video.preload  = "none";
+	  video.muted    = true;
+  
+	  /* 4-A  Decide hover triggers in precedence order
+		 1. sibling (if parent exists) > 2. parent > 3. video > 4. none           */
+	  const parentHover = video.closest("[play-on-hover-parent]");
+	  const siblingEls  = parentHover
+		? [...parentHover.querySelectorAll("[play-on-hover-sibling]")]
+			.filter((el) => el !== video && !el.contains(video))
+		: [];
+	  let triggers = [];
+  
+	  if (siblingEls.length) {
+		triggers = siblingEls;
+	  } else if (parentHover) {
+		triggers = [parentHover];
+	  } else if (video.getAttribute("play-on-hover") === "hover") {
+		triggers = [video];
+	  }
+  
+	  const hoverOnly = Boolean(triggers.length);
+  
+	  console.log(
+		"[handleVideos]",
+		dataSrc,
+		"\n  • Poster:", poster,
+		"\n  • Final :", finalSrc,
+		"\n  • Hover trigger(s):",
+		triggers.length ? triggers.map((e) => e.tagName).join(", ") : "— none —",
+		"\n  •", !useLazy ? "Load NOW" : "Lazy-load wait"
+	  );
+  
+	  /* 4-B  Wire up loading/hover behaviour */
+	  if (!useLazy) {
+		loadNow(video);
+		if (!hoverOnly) playOnScroll(video);
+	  } else {
+		loadObs.observe(video);
+		if (hoverOnly) attachHover(video, triggers);
+	  }
+	}
+  
+	/* ----------------------------------------------------------------
+	   Helper functions
+	------------------------------------------------------------------*/
+	function loadNow(v) {
+	  const s = v.querySelector("source");
+	  s.src   = v._lazySrc;
+	  s.type  = "video/webm";
+	  v.load();
+	  console.log("[loadNow] Loaded:", s.src);
+	}
+  
+	function onLoad(entries, obs) {
+	  for (const { isIntersecting, target: v } of entries) {
+		if (!isIntersecting || v.dataset.loaded) continue;
+		console.log("[onLoad] → loading video");
+		loadNow(v);
+		v.dataset.loaded = "1";
+		obs.unobserve(v);
+  
+		if (!v.autoplay) v.addEventListener("loadeddata", () => (v.pause(), console.log("[onLoad] Paused after first frame")), { once: true });
+		if (v.getAttribute("play-on-hover") !== "hover") playObs.observe(v);
+	  }
+	}
+  
+	function onPlay(entries) {
+	  for (const { intersectionRatio, target: v } of entries) {
+		if (!v.dataset.loaded) continue;
+		intersectionRatio >= playThresh ? v.play() : v.pause();
+		console.log("[onPlay]", intersectionRatio >= playThresh ? "Playing" : "Pausing");
+	  }
+	}
+  
+	function attachHover(video, trigEls) {
+	  if (video.dataset.hoverAttached) return; // already done
+	  video.dataset.hoverAttached = "1";
+  
+	  let playing = false;
+	  video.addEventListener("playing", () => (playing = true));
+	  video.addEventListener("pause",   () => (playing = false));
+  
+	  trigEls.forEach((el) => {
+		el.addEventListener("mouseenter", () => {
+		  console.log("[hover] enter");
+		  if (!video.dataset.loaded) loadNow(video), (video.dataset.loaded = "1");
+		  if (video.paused && !playing) video.play();
+		});
+		el.addEventListener("mouseleave", () => {
+		  console.log("[hover] leave");
+		  if (!video.paused && playing) video.pause();
+		});
+	  });
+	}
+  
+	function playOnScroll(v) {
+	  const onScroll = () => {
+		const r  = v.getBoundingClientRect();
+		const ok = r.top < window.innerHeight * (1 - playThresh) && r.bottom > window.innerHeight * playThresh;
+		ok ? v.play() : v.pause();
+	  };
+	  window.addEventListener("scroll", onScroll, { passive: true });
+	  onScroll();
+	}
+  };
+  
+  
+  
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
 
@@ -73,7 +243,7 @@ function main() {
 				});
 			});
 
-			return () => {};
+			return () => { };
 		});
 	};
 
@@ -508,62 +678,6 @@ function main() {
 		// 	},
 		// 	0
 		// );
-	};
-
-	tyx.functions.playVideosOnHover = function () {
-		const triggers = document.querySelectorAll(".video-hover-trigger");
-		triggers.forEach((trigger) => {
-			const video = trigger.querySelector("video");
-			if (!video) return;
-
-			var isPlaying = false;
-
-			if (tyx.lazyLoadVideos) {
-				const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
-				if (!dataSrc) return;
-
-				// generate the poster URL for the video
-				const posterURL = tyx.helperFunctions.generatePosterURL(video, dataSrc);
-				video.setAttribute("poster", posterURL);
-
-				// generate the video URL for the video
-				const videoURL = tyx.helperFunctions.generateVideoURL(video, dataSrc);
-				videoSource.setAttribute("src", videoURL);
-			} else {
-				tyx.helperFunctions.simpleVideoLoad(video);
-			}
-
-			video.onplaying = function () {
-				isPlaying = true;
-				// console.log("change to playing");
-			};
-			video.onpause = function () {
-				isPlaying = false;
-				// console.log("change to pause");
-			};
-			trigger.addEventListener("mouseenter", function () {
-				playVid(video, isPlaying);
-			});
-			trigger.addEventListener("mouseleave", function () {
-				pauseVid(video, isPlaying);
-			});
-		});
-
-		// Play video function
-		async function playVid(video, isPlaying) {
-			if (video.paused && !isPlaying) {
-				// console.log("play");
-				return video.play();
-			}
-		}
-
-		// Pause video function
-		function pauseVid(video, isPlaying) {
-			if (!video.paused && isPlaying) {
-				// console.log("pause");
-				video.pause();
-			}
-		}
 	};
 
 	tyx.functions.magicCard = function () {
@@ -1509,17 +1623,17 @@ function main() {
 	tyx.functions.magicModal = function () {
 		const cards = document.querySelectorAll(".magic-card");
 		const modals = document.querySelectorAll(".magic-modal");
-	
+
 		if (!cards.length || !modals.length) return;
-	
+
 		const mm = gsap.matchMedia();
-	
+
 		function openModal(modal) {
 			gsap.set(modal, { pointerEvents: "auto" });
 			gsap.to(modal, { autoAlpha: 1, duration: 0.3 });
 			gsap.set(document.body, { overflow: "hidden" });
 		}
-	
+
 		function closeModal(modal, enableScroll = false, delay = 0) {
 			gsap.to(modal, { autoAlpha: 0, duration: 0.3, delay });
 			gsap.set(modal, { pointerEvents: "none" });
@@ -1527,45 +1641,45 @@ function main() {
 				gsap.set(document.body, { overflow: "auto" });
 			}
 		}
-	
+
 		mm.add("(max-width: 768px)", () => {
 			cards.forEach((card, i) => {
 				const modal = modals[i];
 				if (!modal) return;
-	
+
 				const closeBtn = modal.querySelector(".magic-modal_close");
 				const prevModal = modals[(i + cards.length - 1) % cards.length];
 				const nextModal = modals[(i + 1) % cards.length];
 				const prevBtn = modal.querySelector(".magic-modal_arrow.is-prev");
 				const nextBtn = modal.querySelector(".magic-modal_arrow.is-next");
-	
+
 				gsap.set(modal, { autoAlpha: 0, display: "block", pointerEvents: "none" });
-	
+
 				card.addEventListener("click", () => {
 					openModal(modal);
 				});
-	
+
 				if (prevBtn && prevModal) {
 					prevBtn.addEventListener("click", () => {
 						openModal(prevModal);
 						closeModal(modal, false, 0.3);
 					});
 				}
-	
+
 				if (nextBtn && nextModal) {
 					nextBtn.addEventListener("click", () => {
 						openModal(nextModal);
 						closeModal(modal, false, 0.3);
 					});
 				}
-	
+
 				if (closeBtn) {
 					closeBtn.addEventListener("click", () => {
 						closeModal(modal, true);
 					});
 				}
 			});
-	
+
 			// cleanup when leaving mobile view
 			return () => {
 				modals.forEach((modal) => {
@@ -1575,157 +1689,7 @@ function main() {
 			};
 		});
 	};
-	
 
-	tyx.functions.handleVideos = function () {
-		let lazyVideos = [].slice.call(document.querySelectorAll("video"));
-		if (!lazyVideos.length) return;
-
-		/* process:
-		- loop through all videos
-		- get the data src for each video
-		- generate the poster URL for each video
-		- generate the video URL for each video
-		- set the poster attribute of the video element
-		- then we get onto the lazy loading with GSAP ScrollTrigger...
-			- create a scroll trigger for each video
-			- when the video is 100vh from the top of the viewport, set the src attribute of the video element (if video is in a hero section, the video should be loaded immediately)
-			- load the video
-			- remove the lazy class from the video element
-			- video should be paused
-			- when video scrolls into view, play the video
-			- when video scrolls out of view, pause the video
-			if video is one that plays on hover, then play the video only on hover, not on scroll
-			*/
-
-		lazyVideos.forEach((video) => {
-			if (!tyx.lazyLoadVideos) {
-				tyx.helperFunctions.simpleVideoLoad(video);
-				return;
-			}
-
-			const [dataSrc, videoSource] = tyx.helperFunctions.getVideoDataSrc(video);
-			if (!dataSrc || !videoSource) return;
-
-			const isCloudinary = dataSrc.includes("res.cloudinary.com");
-			let videoURL, posterURL;
-
-			if (isCloudinary) {
-				// Use transformed Cloudinary URLs
-				posterURL = tyx.helperFunctions.generatePosterURL(video, dataSrc);
-				videoURL = tyx.helperFunctions.generateVideoURL(video, dataSrc);
-			} else {
-				// Use original URLs
-				videoURL = dataSrc;
-				posterURL = video.getAttribute("poster") || "";
-			}
-
-			// Set attributes
-			if (posterURL) video.setAttribute("poster", posterURL);
-			if (videoURL) videoSource.setAttribute("src", videoURL);
-
-			video.muted = true;
-
-			// create a scroll trigger for each video
-			let loadTrigger = ScrollTrigger.create({
-				trigger: video,
-				start: "top 200%",
-				onEnter: () => {
-					if (video.dataset.load === "loaded") return; // don't load again
-					// set the src attribute of the video element
-					videoSource.setAttribute("src", videoURL);
-					video.load();
-					if (!video.autoplay) {
-						video.addEventListener(
-							"loadeddata",
-							function () {
-								video.pause();
-							},
-							false
-						);
-					}
-					// console.log("video loaded");
-					video.setAttribute("data-load", "loaded"); // set a data attribute to prevent loading again
-				},
-			});
-
-			if (video.getAttribute("play-on-hover") !== "hover") {
-				let playTrigger = ScrollTrigger.create({
-					trigger: video,
-					start: "top 110%",
-					end: "bottom -20%",
-					onEnter: () => {
-						// console.log("video play");
-						video.play();
-					},
-					onLeave: () => {
-						// console.log("video pause");
-						video.pause();
-					},
-					onEnterBack: () => {
-						// console.log("video play");
-						video.play();
-					},
-					onLeaveBack: () => {
-						// console.log("video pause");
-						video.pause();
-					},
-					// markers: true,
-				});
-			}
-		});
-	};
-
-	tyx.helperFunctions.simpleVideoLoad = function (video) {
-		let sourceElement = video.querySelector("source");
-		let dataSrc = sourceElement.dataset.src;
-		if (sourceElement && dataSrc) {
-			video.muted = true;
-			sourceElement.setAttribute("src", sourceElement.dataset.src);
-			video.load();
-		}
-	};
-
-	tyx.helperFunctions.generatePosterURL = function (video, dataSrc) {
-		if (!dataSrc) return;
-
-		const parts = dataSrc.split("/upload/");
-		if (parts.length !== 2) return;
-
-		const [base, rest] = parts;
-		const restWithoutExtension = rest.split(".").slice(0, -1).join(".");
-		const posterURL = `${base}/upload/so_auto/q_auto/${restWithoutExtension}.jpg`;
-
-		// console.log("posterURL", posterURL);
-		return posterURL;
-	};
-
-	tyx.helperFunctions.generateVideoURL = function (video, dataSrc, quality = "q_auto,f_auto") {
-		if (!dataSrc) return;
-
-		const parts = dataSrc.split("/upload/");
-		if (parts.length !== 2) return;
-
-		const [base, rest] = parts;
-		const restWithoutExtension = rest.split(".").slice(0, -1).join(".");
-		const videoURL = `${base}/upload/${quality}/${restWithoutExtension}.webm`;
-
-		// console.log("videoURL", videoURL);
-		return videoURL;
-	};
-
-	tyx.helperFunctions.getVideoDataSrc = function (video) {
-		// check if the video's source element has a data-src attribute
-		// only look at the first source element
-		// also return the source element so we can later set the src attribute
-
-		const videoSource = video.getElementsByTagName("source")[0];
-		if (!videoSource) return;
-
-		const dataSrc = videoSource.getAttribute("data-src");
-		if (!dataSrc) return;
-		return [dataSrc, videoSource];
-	};
 
 	tyx.helperFunctions.horizontalLoop = function (items, config) {
 		let timeline;
@@ -2035,7 +1999,7 @@ function main() {
 				let { isDesktop, isMobile, reduceMotion } = context.conditions;
 
 				if (reduceMotion) {
-					return () => {}; // Skip slider entirely
+					return () => { }; // Skip slider entirely
 				}
 
 				// Clean up old loop if re-init (in case of breakpoint change)
@@ -2053,7 +2017,7 @@ function main() {
 							},
 							speed: isDesktop ? 1.2 : 0.6,
 							center: true,
-							onChange: (element, index) => {},
+							onChange: (element, index) => { },
 						});
 						loop.refresh(true);
 
@@ -2086,9 +2050,7 @@ function main() {
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.handleVideos();
-	tyx.functions.playVideosOnHover();
 	tyx.functions.counter();
-	// tyx.functions.magicCard();
 	tyx.functions.serviceCard();
 	tyx.functions.chaosMarquee();
 	tyx.functions.process();
