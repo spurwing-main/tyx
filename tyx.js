@@ -57,7 +57,7 @@ tyx.helperFunctions.cleanCloudinaryURL = (u = "") => {
 	const [base, rest] = tyx.helperFunctions.cleanCloudinaryURL(raw).split("/upload/");
 	if (!rest) return console.warn("[generateVideoURL] Bad Cloudinary URL:", raw), "";
 	const id = rest.split(".").slice(0, -1).join(".");
-	const url = `${base}/upload/fl_force_format,q_auto,f_webm/${id}.webm`;
+	const url = `${base}/upload/w_1280,q_auto,f_auto,fps_15-30,ac_none/${id}.webm`;
 	console.log("[generateVideoURL]", url);
 	return url;
   };
