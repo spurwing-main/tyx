@@ -18,7 +18,8 @@ function main() {
 			pagination: false,
 			focus: 0,
 			speed: 600,
-			dragAngleThreshold: 60,
+			dragAngleThreshold: 45,
+			dragMinThreshold: 20,
 			autoWidth: false,
 			rewind: false,
 			rewindSpeed: 400,
@@ -30,17 +31,7 @@ function main() {
 			snap: true,
 			autoWidth: false,
 			autoplay: true,
-			// ── Require a bigger drag before Splide even considers it … ──
-			dragMinThreshold: 20,          // default is 10px; now must drag ≥20px 
-			flickDistanceThreshold: 30,    // default is ~10px; now need ≥30px flick
-
-			// ── Clamp flick‐velocity so it can’t skip multiple slides … ──
-			flickVelocityThreshold: 0.8,   // default ~0.6; now need a stronger flick
-			flickMaxPages: 1,        // never move more than one “page” per flick
-			flickPower: 1000,      // boost so weak flicks won’t skip slides
-
-			// ── Don’t accept a second touch/drag until the current transition ends ──
-			waitForTransition: true,
+			flick: false,
 		};
 	})();
 
@@ -82,7 +73,7 @@ function main() {
 				});
 			});
 
-			return () => { };
+			return () => {};
 		});
 	};
 
@@ -1518,17 +1509,17 @@ function main() {
 	tyx.functions.magicModal = function () {
 		const cards = document.querySelectorAll(".magic-card");
 		const modals = document.querySelectorAll(".magic-modal");
-
+	
 		if (!cards.length || !modals.length) return;
-
+	
 		const mm = gsap.matchMedia();
-
+	
 		function openModal(modal) {
 			gsap.set(modal, { pointerEvents: "auto" });
 			gsap.to(modal, { autoAlpha: 1, duration: 0.3 });
 			gsap.set(document.body, { overflow: "hidden" });
 		}
-
+	
 		function closeModal(modal, enableScroll = false, delay = 0) {
 			gsap.to(modal, { autoAlpha: 0, duration: 0.3, delay });
 			gsap.set(modal, { pointerEvents: "none" });
@@ -1536,45 +1527,45 @@ function main() {
 				gsap.set(document.body, { overflow: "auto" });
 			}
 		}
-
+	
 		mm.add("(max-width: 768px)", () => {
 			cards.forEach((card, i) => {
 				const modal = modals[i];
 				if (!modal) return;
-
+	
 				const closeBtn = modal.querySelector(".magic-modal_close");
 				const prevModal = modals[(i + cards.length - 1) % cards.length];
 				const nextModal = modals[(i + 1) % cards.length];
 				const prevBtn = modal.querySelector(".magic-modal_arrow.is-prev");
 				const nextBtn = modal.querySelector(".magic-modal_arrow.is-next");
-
+	
 				gsap.set(modal, { autoAlpha: 0, display: "block", pointerEvents: "none" });
-
+	
 				card.addEventListener("click", () => {
 					openModal(modal);
 				});
-
+	
 				if (prevBtn && prevModal) {
 					prevBtn.addEventListener("click", () => {
 						openModal(prevModal);
 						closeModal(modal, false, 0.3);
 					});
 				}
-
+	
 				if (nextBtn && nextModal) {
 					nextBtn.addEventListener("click", () => {
 						openModal(nextModal);
 						closeModal(modal, false, 0.3);
 					});
 				}
-
+	
 				if (closeBtn) {
 					closeBtn.addEventListener("click", () => {
 						closeModal(modal, true);
 					});
 				}
 			});
-
+	
 			// cleanup when leaving mobile view
 			return () => {
 				modals.forEach((modal) => {
@@ -1584,7 +1575,7 @@ function main() {
 			};
 		});
 	};
-
+	
 
 	tyx.functions.handleVideos = function () {
 		let lazyVideos = [].slice.call(document.querySelectorAll("video"));
@@ -2044,7 +2035,7 @@ function main() {
 				let { isDesktop, isMobile, reduceMotion } = context.conditions;
 
 				if (reduceMotion) {
-					return () => { }; // Skip slider entirely
+					return () => {}; // Skip slider entirely
 				}
 
 				// Clean up old loop if re-init (in case of breakpoint change)
@@ -2062,7 +2053,7 @@ function main() {
 							},
 							speed: isDesktop ? 1.2 : 0.6,
 							center: true,
-							onChange: (element, index) => { },
+							onChange: (element, index) => {},
 						});
 						loop.refresh(true);
 
