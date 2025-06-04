@@ -1505,97 +1505,75 @@ function main() {
 	};
 
 	tyx.functions.magicModal = function () {
-		//check we have some .magic-card elements
 		const cards = document.querySelectorAll(".magic-card");
-		if (!cards.length) return;
-
 		const modals = document.querySelectorAll(".magic-modal");
-		if (!modals.length) return;
-
+	
+		if (!cards.length || !modals.length) return;
+	
 		const mm = gsap.matchMedia();
-
-		/* for each card, we have a hidden .magic-modal element. On click of the relevant button on each card:
-		- open the modal
-		- disable scroll on the body
-		
-		And on click of the close button:
-		- close the modal
-		- enable scroll on the body
-		*/
-
+	
 		function openModal(modal) {
 			gsap.set(modal, { pointerEvents: "auto" });
 			gsap.to(modal, { autoAlpha: 1, duration: 0.3 });
 			gsap.set(document.body, { overflow: "hidden" });
 		}
-
+	
 		function closeModal(modal, enableScroll = false, delay = 0) {
-			gsap.to(modal, { autoAlpha: 0, duration: 0.3, delay: delay });
+			gsap.to(modal, { autoAlpha: 0, duration: 0.3, delay });
 			gsap.set(modal, { pointerEvents: "none" });
 			if (enableScroll) {
-				// if we are using the close button, we want to enable scroll on the body
 				gsap.set(document.body, { overflow: "auto" });
 			}
 		}
-
+	
 		mm.add("(max-width: 768px)", () => {
 			cards.forEach((card, i) => {
-				const btn = card.querySelector(".magic-card_btn");
-				// make button cover whole card
-				gsap.set(btn, {
-					innerHTML: "",
-					backgroundColor: "transparent",
-					borderRadius: "0",
-					opacity: 0,
-					gridColumn: "1 / -1",
-					gridRow: "1 / 3",
-					width: "100%",
-					height: "100%",
-					inset: 0,
-				});
 				const modal = modals[i];
+				if (!modal) return;
+	
+				const closeBtn = modal.querySelector(".magic-modal_close");
 				const prevModal = modals[(i + cards.length - 1) % cards.length];
 				const nextModal = modals[(i + 1) % cards.length];
-				console.log(prevModal, nextModal);
-				const closeBtn = modal.querySelector(".magic-modal_close");
-				const arrowWrap = modal.querySelector(".magic-modal_arrow-wrap");
 				const prevBtn = modal.querySelector(".magic-modal_arrow.is-prev");
 				const nextBtn = modal.querySelector(".magic-modal_arrow.is-next");
-				gsap.set(arrowWrap, { autoAlpha: 1 });
-
-				if (!btn || !modal || !closeBtn) return;
-
+	
 				gsap.set(modal, { autoAlpha: 0, display: "block", pointerEvents: "none" });
-
-				card.addEventListener("click", function () {
+	
+				card.addEventListener("click", () => {
 					openModal(modal);
 				});
-
-				// if we have a next and prev button, add click events to them
-				if (prevModal) {
-					prevBtn.addEventListener("click", function () {
+	
+				if (prevBtn && prevModal) {
+					prevBtn.addEventListener("click", () => {
 						openModal(prevModal);
-						closeModal(modal, false, 0.3); // disable scroll on body
+						closeModal(modal, false, 0.3);
 					});
 				}
-				if (nextModal) {
-					nextBtn.addEventListener("click", function () {
+	
+				if (nextBtn && nextModal) {
+					nextBtn.addEventListener("click", () => {
 						openModal(nextModal);
-						closeModal(modal, false, 0.3); // disable scroll on body
+						closeModal(modal, false, 0.3);
 					});
 				}
-				// close button
-				closeBtn.addEventListener("click", function () {
-					closeModal(modal, true); // enable scroll on body
-				});
+	
+				if (closeBtn) {
+					closeBtn.addEventListener("click", () => {
+						closeModal(modal, true);
+					});
+				}
 			});
+	
+			// cleanup when leaving mobile view
 			return () => {
-				gsap.set(modals, { display: "none" });
-				gsap.set(".magic-card_btn", { clearprops: "all" });
+				modals.forEach((modal) => {
+					gsap.set(modal, { autoAlpha: 0, pointerEvents: "none" });
+				});
 				gsap.set(document.body, { overflow: "auto" });
 			};
 		});
 	};
+	
 
 	tyx.functions.handleVideos = function () {
 		let lazyVideos = [].slice.call(document.querySelectorAll("video"));
