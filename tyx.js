@@ -145,7 +145,6 @@ tyx.helperFunctions.cleanCloudinaryURL = (u = "") => {
 	function loadNow(v) {
 	  const s = v.querySelector("source");
 	  s.src   = v._lazySrc;
-	  s.type  = "video/webm";
 	  v.load();
 	  console.log("[loadNow] Loaded:", s.src);
 	}
