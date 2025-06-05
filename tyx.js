@@ -38,7 +38,7 @@ function main() {
 	tyx.functions.handleVideos = () => {
 		/* ——————————————————————————————————————————————————————— constants */
 		const DEF_WIDTH   = 1280;           // px, when data-width missing/invalid
-		const DEF_QUALITY = "eco";          // Cloudinary q_auto:eco default
+		const DEF_QUALITY = "good";          // Cloudinary q_auto:eco default
 		const PLAY_T      = 0.5;            // viewport threshold to play
 	
 		/* ———————————————————————————————————————————————— helpers (scoped) */
