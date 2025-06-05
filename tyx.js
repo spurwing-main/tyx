@@ -37,167 +37,167 @@ function main() {
 
 	tyx.functions.handleVideos = () => {
 		/* ——————————————————————————————————————————————————————— constants */
-		const DEF_WIDTH   = 1280;           // px, when data-width missing/invalid
+		const DEF_WIDTH = 1280;           // px, when data-width missing/invalid
 		const DEF_QUALITY = "good";          // Cloudinary q_auto:eco default
-		const PLAY_T      = 0.5;            // viewport threshold to play
-	
+		const PLAY_T = 0.5;            // viewport threshold to play
+
 		/* ———————————————————————————————————————————————— helpers (scoped) */
 		const cleanCloudURL = (u = "") =>
-		  u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
-	
+			u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
+
 		const buildTransforms = (url, w, q) => {
-		  const m = cleanCloudURL(url).match(/^(https:\/\/[^\/]+\/[^\/]+)\/video\/upload\/v(\d+)\/(.+)$/);
-		  if (!m) return null;              // not Cloudinary
-		  const [, base, ver, rest] = m;
-		  const dot      = rest.lastIndexOf(".");
-		  const pubId    = rest.slice(0, dot);
-		  const width    = parseInt(w, 10) || DEF_WIDTH;
-		  const quality  = normaliseQuality(q);
-		  const manip    = `c_scale,w_${width},fps_15-30,ac_none`;
-		  return {
-			poster : `${base}/video/upload/so_auto,${quality}/v${ver}/${pubId}.jpg`,
-			webm   : `${base}/video/upload/${manip},${quality},f_webm/v${ver}/${pubId}.webm`,
-			mp4    : `${base}/video/upload/${manip},${quality},f_mp4/v${ver}/${pubId}.mp4`,
-		  };
+			const m = cleanCloudURL(url).match(/^(https:\/\/[^\/]+\/[^\/]+)\/video\/upload\/v(\d+)\/(.+)$/);
+			if (!m) return null;              // not Cloudinary
+			const [, base, ver, rest] = m;
+			const dot = rest.lastIndexOf(".");
+			const pubId = rest.slice(0, dot);
+			const width = parseInt(w, 10) || DEF_WIDTH;
+			const quality = normaliseQuality(q);
+			const manip = `c_scale,w_${width},fps_15-30,ac_none`;
+			return {
+				poster: `${base}/video/upload/so_auto,${quality}/v${ver}/${pubId}.jpg`,
+				webm: `${base}/video/upload/${manip},${quality},f_webm/v${ver}/${pubId}.webm`,
+				mp4: `${base}/video/upload/${manip},${quality},f_mp4/v${ver}/${pubId}.mp4`,
+			};
 		};
-	
+
 		const normaliseQuality = (q) => {
-		  if (!q) return `q_auto:${DEF_QUALITY}`;
-		  if (/^\d+$/.test(q))                 return `q_${q}`;              // explicit number
-		  if (/^(eco|good|best|low)$/i.test(q)) return `q_auto:${q.toLowerCase()}`;
-		  return `q_auto:${DEF_QUALITY}`;                                   // fallback
+			if (!q) return `q_auto:${DEF_QUALITY}`;
+			if (/^\d+$/.test(q)) return `q_${q}`;              // explicit number
+			if (/^(eco|good|best|low)$/i.test(q)) return `q_auto:${q.toLowerCase()}`;
+			return `q_auto:${DEF_QUALITY}`;                                   // fallback
 		};
-	
+
 		const setType = (s) => {
-		  const want = /\.mp4$/i.test(s.src) ? "video/mp4" : "video/webm";
-		  if (s.type !== want) s.setAttribute("type", want);
+			const want = /\.mp4$/i.test(s.src) ? "video/mp4" : "video/webm";
+			if (s.type !== want) s.setAttribute("type", want);
 		};
-	
+
 		const hoverTriggers = (video) => {
-		  const parent = video.closest("[play-on-hover-parent]");
-		  if (parent) {
-			return [parent, ...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(n => !n.contains(video))];
-		  }
-		  return video.getAttribute("play-on-hover") === "hover" ? [video] : [];
+			const parent = video.closest("[play-on-hover-parent]");
+			if (parent) {
+				return [parent, ...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(n => !n.contains(video))];
+			}
+			return video.getAttribute("play-on-hover") === "hover" ? [video] : [];
 		};
-	
+
 		/* ———————————————————————————————————————————————— early exit */
 		const vids = [...document.querySelectorAll("video")];
 		if (!vids.length) return;
-	
+
 		/* ————————————————————————————————————————————— browser capability */
-		const canWebM  = !!document.createElement("video").canPlayType('video/webm; codecs="vp9"');
-		const useLazy  = (typeof tyx.lazyLoadVideos === "undefined" ? true : tyx.lazyLoadVideos) && "IntersectionObserver" in window;
-	
-		const loadObs  = useLazy ? new IntersectionObserver(onLoad , { rootMargin: "0px 0px 200px 0px" }) : null;
-		const playObs  = useLazy ? new IntersectionObserver(onPlay , { threshold : PLAY_T                }) : null;
-	
+		const canWebM = !!document.createElement("video").canPlayType('video/webm; codecs="vp9"');
+		const useLazy = (typeof tyx.lazyLoadVideos === "undefined" ? true : tyx.lazyLoadVideos) && "IntersectionObserver" in window;
+
+		const loadObs = useLazy ? new IntersectionObserver(onLoad, { rootMargin: "0px 0px 200px 0px" }) : null;
+		const playObs = useLazy ? new IntersectionObserver(onPlay, { threshold: PLAY_T }) : null;
+
 		/* —————————————————————————————————————————— initialise each <video> */
 		vids.forEach(v => {
-		  if (v.dataset._tyxInit) return;          // idempotent
-		  v.dataset._tyxInit = "1";
-	
-		  const originals = [...v.querySelectorAll("source")];
-		  const keep      = [];
-	
-		  originals.forEach(src => {
-			const raw  = src.dataset.src || src.getAttribute("src");
-			if (!raw) return;                       // empty <source>
-	
-			const tr = buildTransforms(
-			  raw,
-			  src.getAttribute("data-width"),
-			  src.getAttribute("data-quality"),
-			);
-	
-			if (tr) {
-			  /* Cloudinary ➜ swap in optimised rendition */
-			  src.src = canWebM ? tr.webm : tr.mp4;
-			  setType(src);
-			  src.removeAttribute("data-src");
-			  v.poster = tr.poster;
-			  keep.push(src);
+			if (v.dataset._tyxInit) return;          // idempotent
+			v.dataset._tyxInit = "1";
+
+			const originals = [...v.querySelectorAll("source")];
+			const keep = [];
+
+			originals.forEach(src => {
+				const raw = src.dataset.src || src.getAttribute("src");
+				if (!raw) return;                       // empty <source>
+
+				const tr = buildTransforms(
+					raw,
+					src.getAttribute("data-width"),
+					src.getAttribute("data-quality"),
+				);
+
+				if (tr) {
+					/* Cloudinary ➜ swap in optimised rendition */
+					src.src = canWebM ? tr.webm : tr.mp4;
+					setType(src);
+					src.removeAttribute("data-src");
+					v.poster = tr.poster;
+					keep.push(src);
+				} else {
+					/* External ➜ leave untouched except ensure src/type */
+					src.src = raw;           // copy data-src → src if needed
+					setType(src);
+					src.removeAttribute("data-src");
+					keep.push(src);
+				}
+			});
+
+			/* prune leftover Cloudinary masters */
+			originals.filter(s => /\/video\/upload\//.test(s.src || s.dataset.src || "") && !keep.includes(s))
+				.forEach(n => n.remove());
+
+			if (!keep.length) return;               // nothing playable
+
+			/* global video attributes */
+			v.removeAttribute("src");
+			v.preload = "none";
+			v.muted = true;                       // autoplay safety
+
+			const hEls = hoverTriggers(v);
+			const hOnly = hEls.length > 0;
+
+			if (!useLazy) {
+				v.load();
+				if (!hOnly) playOnScroll(v);
 			} else {
-			  /* External ➜ leave untouched except ensure src/type */
-			  src.src = raw;           // copy data-src → src if needed
-			  setType(src);
-			  src.removeAttribute("data-src");
-			  keep.push(src);
+				loadObs.observe(v);
+				if (hOnly) hookHover(v, hEls);
 			}
-		  });
-	
-		  /* prune leftover Cloudinary masters */
-		  originals.filter(s => /\/video\/upload\//.test(s.src || s.dataset.src || "") && !keep.includes(s))
-				   .forEach(n => n.remove());
-	
-		  if (!keep.length) return;               // nothing playable
-	
-		  /* global video attributes */
-		  v.removeAttribute("src");
-		  v.preload = "none";
-		  v.muted   = true;                       // autoplay safety
-	
-		  const hEls  = hoverTriggers(v);
-		  const hOnly = hEls.length > 0;
-	
-		  if (!useLazy) {
-			v.load();
-			if (!hOnly) playOnScroll(v);
-		  } else {
-			loadObs.observe(v);
-			if (hOnly) hookHover(v, hEls);
-		  }
 		});
-	
+
 		/* ————————————————————————————————————————————— observers */
 		function onLoad(entries, obs) {
-		  entries.forEach(({ isIntersecting, target }) => {
-			if (!isIntersecting || target.dataset.loaded) return;
-			target.load();
-			target.dataset.loaded = "1";
-			obs.unobserve(target);
-			if (!target.autoplay) target.addEventListener("loadeddata", () => target.pause(), { once: true });
-			if (!hoverTriggers(target).length) playObs.observe(target);
-		  });
+			entries.forEach(({ isIntersecting, target }) => {
+				if (!isIntersecting || target.dataset.loaded) return;
+				target.load();
+				target.dataset.loaded = "1";
+				obs.unobserve(target);
+				if (!target.autoplay) target.addEventListener("loadeddata", () => target.pause(), { once: true });
+				if (!hoverTriggers(target).length) playObs.observe(target);
+			});
 		}
-	
+
 		function onPlay(entries) {
-		  entries.forEach(({ intersectionRatio, target }) => {
-			if (!target.dataset.loaded) return;
-			intersectionRatio >= PLAY_T ? target.play() : target.pause();
-		  });
+			entries.forEach(({ intersectionRatio, target }) => {
+				if (!target.dataset.loaded) return;
+				intersectionRatio >= PLAY_T ? target.play() : target.pause();
+			});
 		}
-	
+
 		/* ——————————————————————————————————————————— hover handling */
 		function hookHover(v, els) {
-		  let playing = false;
-		  v.addEventListener("playing", () => playing = true);
-		  v.addEventListener("pause"  , () => playing = false);
-		  els.forEach(el => {
-			el.addEventListener("mouseenter", () => {
-			  if (!v.dataset.loaded) { v.load(); v.dataset.loaded = "1"; }
-			  if (v.paused && !playing) v.play();
+			let playing = false;
+			v.addEventListener("playing", () => playing = true);
+			v.addEventListener("pause", () => playing = false);
+			els.forEach(el => {
+				el.addEventListener("mouseenter", () => {
+					if (!v.dataset.loaded) { v.load(); v.dataset.loaded = "1"; }
+					if (v.paused && !playing) v.play();
+				});
+				el.addEventListener("mouseleave", () => {
+					if (!v.paused && playing) v.pause();
+				});
 			});
-			el.addEventListener("mouseleave", () => {
-			  if (!v.paused && playing) v.pause();
-			});
-		  });
 		}
-	
+
 		/* ——————————————————————————————————————————— scroll handling */
 		function playOnScroll(v) {
-		  let raf = null;
-		  const evaluate = () => {
-			raf = null;
-			const r = v.getBoundingClientRect();
-			const inView = r.top < innerHeight * (1 - PLAY_T) && r.bottom > innerHeight * PLAY_T;
-			inView ? v.play() : v.pause();
-		  };
-		  const onScroll = () => { if (!raf) raf = requestAnimationFrame(evaluate); };
-		  addEventListener("scroll", onScroll, { passive: true });
-		  evaluate();
+			let raf = null;
+			const evaluate = () => {
+				raf = null;
+				const r = v.getBoundingClientRect();
+				const inView = r.top < innerHeight * (1 - PLAY_T) && r.bottom > innerHeight * PLAY_T;
+				inView ? v.play() : v.pause();
+			};
+			const onScroll = () => { if (!raf) raf = requestAnimationFrame(evaluate); };
+			addEventListener("scroll", onScroll, { passive: true });
+			evaluate();
 		}
-	  };
+	};
 
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
@@ -674,119 +674,99 @@ function main() {
 		// );
 	};
 
-	tyx.functions.magicCard = function () {
-		const cards = document.querySelectorAll(".magic-card");
-		const className = "w-variant-c5bd8cb1-745d-6422-4579-86188fba0502";
+	tyx.helperFunctions.splideArrows = function (
+		splide,
+		inactiveClass = "is-inactive"
+	) {
+		const prev = splide.root.querySelector(".splide__arrow--prev");
+		const next = splide.root.querySelector(".splide__arrow--next");
 
-		function toggleClass(els, myClass) {
-			els.forEach((el) => {
-				if (el.classList.contains(myClass)) {
-					el.classList.remove(myClass);
-				} else {
-					el.classList.add(myClass);
-				}
+		function update() {
+			// guard: Components may not exist if called too early
+			if (!splide.Components || !splide.Components.Controller) return;
+
+			const end = splide.Components.Controller.getEnd();
+			if (prev) prev.classList.toggle(inactiveClass, splide.index === 0);
+			if (next) next.classList.toggle(inactiveClass, splide.index === end);
+		}
+
+		/* wait for Splide to finish mounting, then track every move */
+		splide.on("mounted move", update);
+	};
+
+	tyx.functions.magicCarousel = function () {
+		const node = document.querySelector(".s-magic-carousel .splide");
+		if (!node) return;
+
+		const splide = new Splide(node, {
+			type: "slide",
+			mediaQuery: "min",
+			autoWidth: true,
+			arrows: true,
+			trimSpace: "move",
+			pagination: false,
+		});
+
+		/* add this ↓↓↓ */
+		tyx.helperFunctions.splideArrows(splide);
+
+		/* keep your progress-bar logic if you still need it */
+		const bar = splide.root.querySelector(".progress_bar");
+		if (bar) {
+			splide.on("mounted move", () => {
+				const end = splide.Components.Controller.getEnd() + 1;
+				const rate = Math.min((splide.index + 1) / end, 1);
+				bar.style.width = `${rate * 100}%`;
 			});
 		}
 
-		cards.forEach((card) => {
-			const btn = card.querySelector(".magic-card_btn");
-			const content = card.querySelector(".magic-card_content");
-			const content_1 = card.querySelector(".magic-card_content-1");
-			const content_2 = card.querySelector(".magic-card_content-2");
-			const content_3 = card.querySelector(".magic-card_content-3");
-			if (!btn || !content) return;
-
-			// const tl = gsap.timeline({
-			// 	paused: true,
-			// });
-
-			function doFlip() {
-				const state = Flip.getState([card, content, content_1, content_2, content_3]);
-
-				// make styling change
-				toggleClass([card, content, content_1, content_2, content_3], className);
-
-				Flip.from(state, { duration: 1, ease: "power1.inOut" });
-
-				card.setAttribute("aria-expanded", "true");
-			}
-
-			btn.addEventListener("click", function () {
-				if (card.getAttribute("aria-expanded") !== "true") {
-					doFlip();
-				} else {
-					// Reset the card to its original state
-					toggleClass([card, content, content_1, content_2, content_3], className);
-					card.setAttribute("aria-expanded", "false");
-				}
-			});
-		});
+		splide.mount();
 	};
 
 	tyx.functions.serviceCard = function () {
-		var check = document.querySelector(".home-service-card");
+		const check = document.querySelector(".home-service-card");
 		if (!check) return;
-
-		let mm = gsap.matchMedia();
+		const mm = gsap.matchMedia();
 
 		mm.add("(min-width: 768px)", () => {
 			const cards = document.querySelectorAll(".home-service-card");
 			cards.forEach((card) => {
 				const bottom = card.querySelector(".home-service-card_bottom");
-				let tl = gsap.timeline({
-					paused: true,
-					reversed: true,
-				});
-				tl.to(bottom, { height: "auto", duration: 0.3 });
+				const tl = gsap.timeline({ paused: true, reversed: true })
+					.to(bottom, { height: "auto", duration: 0.3 });
 				gsap.set(bottom, { height: 0 });
 
-				card.addEventListener("mouseenter", function () {
-					toggle();
-				});
-				card.addEventListener("mouseleave", function () {
-					toggle();
-				});
-
-				function toggle() {
-					tl.reversed() ? tl.play() : tl.reverse();
-				}
+				function toggle() { tl.reversed() ? tl.play() : tl.reverse(); }
+				card.addEventListener("mouseenter", toggle);
+				card.addEventListener("mouseleave", toggle);
 			});
 
-			return () => {
-				// reset height
-				gsap.set(".home-service-card_bottom", { height: "auto" });
-			};
+			/* cleanup when breakpoint flips */
+			return () => gsap.set(".home-service-card_bottom", { height: "auto" });
 		});
-
-		var splide = new Splide(".s-home-services .splide", {
+		const splide = new Splide(".s-home-services .splide", {
 			type: "slide",
 			mediaQuery: "min",
-			// autoWidth: true,
-			//width: "16rem",
-			autoplay: false,
 			arrows: true,
 			trimSpace: "move",
 			pagination: false,
-			breakpoints: {
-				768: {
-					destroy: true,
-				},
-			},
+			breakpoints: { 768: { destroy: true } },
 		});
-		var bar = splide.root.querySelector(".progress_bar");
-		if (!bar) {
-			splide.mount();
-			return;
-		} else {
-			// Updates the bar width whenever the carousel moves:
-			splide.on("mounted move", function () {
-				var end = splide.Components.Controller.getEnd() + 1;
-				var rate = Math.min((splide.index + 1) / end, 1);
-				bar.style.width = String(100 * rate) + "%";
+		tyx.helperFunctions.splideArrows(splide);
+
+		/* optional progress bar (leave as-is, ignore if none present) */
+		const bar = splide.root.querySelector(".progress_bar");
+		if (bar) {
+			splide.on("mounted move", () => {
+				const end = splide.Components.Controller.getEnd() + 1;
+				const rate = Math.min((splide.index + 1) / end, 1);
+				bar.style.width = `${rate * 100}%`;
 			});
-			splide.mount();
 		}
+
+		splide.mount();
 	};
+
 
 	tyx.functions.teamSlider = function () {
 		var check = document.querySelector(".s-team .splide");
