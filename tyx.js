@@ -35,168 +35,185 @@ function main() {
 		};
 	})();
 
-	/* ---------- Cloudinary helpers ------------------------------------ */
-	tyx.helperFunctions.cleanCloudinaryURL = (u = "") =>
-		u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
 
-	tyx.helperFunctions.parseCloudinaryURL = (raw) => {
-		/* https://res.cloudinary.com/<cloud>/video/upload/v123/publicId.ext */
-		const m = tyx.helperFunctions
-			.cleanCloudinaryURL(raw)
-			.match(/^(https:\/\/[^/]+\/[^/]+)\/video\/upload\/v(\d+)\/(.+)$/);
-		if (!m) return null;
-		const [, base, version, rest] = m;
-		const dot = rest.lastIndexOf(".");
-		return { base, version, publicId: rest.slice(0, dot) };
-	};
-
-	tyx.helperFunctions.buildTransforms = (url) => {
-		const p = tyx.helperFunctions.parseCloudinaryURL(url);
-		if (!p) return null;
-		const { base, version, publicId } = p;
-		const manip = "c_scale,w_1280,fps_15-30,ac_none";
-		const compress = "q_auto:eco";
-		return {
-			poster: `${base}/video/upload/so_auto,${compress}/v${version}/${publicId}.jpg`,
-			webm: `${base}/video/upload/${manip},${compress},f_webm/v${version}/${publicId}.webm`,
-			mp4: `${base}/video/upload/${manip},${compress},f_mp4/v${version}/${publicId}.mp4`,
-		};
-	};
-
-	tyx.helperFunctions.setType = (s) =>
-		s.setAttribute(
-			"type",
-			/\.mp4$/i.test(s.src) ? "video/mp4" : "video/webm"
-		);
-
-	/* ---------- hover-trigger discovery -------------------------------- */
-	const hoverTriggers = (video) => {
-		const parent = video.closest("[play-on-hover-parent]");
-		if (parent) {
-			return [
-				parent,
-				...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(
-					(n) => !n.contains(video)
-				),
-			];
-		}
-		return video.getAttribute("play-on-hover") === "hover" ? [video] : [];
-	};
-
-	/* ---------- main --------------------------------------------------- */
 	tyx.functions.handleVideos = () => {
+
+		const cleanCloudinaryURL = (u = "") =>
+			u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
+
+		const parseCloudinaryURL = (raw = "") => {
+			const m = cleanCloudinaryURL(raw)
+				.match(/^(https:\/\/[^/]+\/[^/]+)\/video\/upload\/v(\d+)\/(.+)$/);
+			if (!m) return null;
+			const [, base, version, rest] = m;
+			const dot = rest.lastIndexOf(".");
+			return { base, version, publicId: rest.slice(0, dot) };
+		};
+
+		const buildTransforms = (url) => {
+			const p = parseCloudinaryURL(url);
+			if (!p) return null;
+			const { base, version, publicId } = p;
+			const manip = "c_scale,w_1280,fps_15-30,ac_none";
+			const compress = "q_auto:eco";
+			return {
+				poster: `${base}/video/upload/so_auto,${compress}/v${version}/${publicId}.jpg`,
+				webm: `${base}/video/upload/${manip},${compress},f_webm/v${version}/${publicId}.webm`,
+				mp4: `${base}/video/upload/${manip},${compress},f_mp4/v${version}/${publicId}.mp4`,
+			};
+		};
+
+		const setType = (s) => {
+			const correct = /\.mp4$/i.test(s.src) ? "video/mp4" : "video/webm";
+			if (s.type !== correct) s.setAttribute("type", correct);
+		};
+
+		const playOnHoverElements = (video) => {
+			const parent = video.closest("[play-on-hover-parent]");
+			if (parent) {
+				return [
+					parent,
+					...Array.from(parent.querySelectorAll("[play-on-hover-sibling]"))
+						.filter((n) => !n.contains(video)),
+				];
+			}
+			return video.getAttribute("play-on-hover") === "hover" ? [video] : [];
+		};
+
+		/* —— early exits / environment —— */
 		if (typeof tyx.lazyLoadVideos === "undefined") tyx.lazyLoadVideos = true;
 
-		const vids = [...document.querySelectorAll("video")];
-		if (!vids.length) return;
+		const videos = Array.from(document.querySelectorAll("video"));
+		if (!videos.length) return;
 
-		const canWebM = !!document
-			.createElement("video")
+		const canWebM = !!document.createElement("video")
 			.canPlayType('video/webm; codecs="vp9"');
-		const useLazy =
-			tyx.lazyLoadVideos && "IntersectionObserver" in window;
+		const useLazy = tyx.lazyLoadVideos && "IntersectionObserver" in window;
 
 		const rootMargin = "0px 0px 200px 0px";
-		const playT = 0.5;
-		const loadObs = useLazy
-			? new IntersectionObserver(onLoad, { rootMargin })
-			: null;
-		const playObs = useLazy
-			? new IntersectionObserver(onPlay, { threshold: playT })
-			: null;
+		const playThreshold = 0.5;
 
-		vids.forEach((v) => {
+		const loadObserver = useLazy ?
+			new IntersectionObserver(handleLoad, { rootMargin }) : null;
+		const playObserver = useLazy ?
+			new IntersectionObserver(handlePlay, { threshold: playThreshold }) : null;
+
+		/* —— main loop over videos —— */
+		videos.forEach((v) => {
 			if (v.dataset._tyxInit) return;
 			v.dataset._tyxInit = "1";
 
-			/* 1. rewrite / prune sources ----------------------------------- */
-			const originals = [...v.querySelectorAll("source")];
-			const good = [];
+			const originals = Array.from(v.querySelectorAll("source"));
+			const keep = [];
 
 			originals.forEach((src) => {
 				const raw = src.dataset.src || src.getAttribute("src");
-				const tr = raw ? tyx.helperFunctions.buildTransforms(raw) : null;
-				if (!tr) return;                                        // not Cloudinary
+				if (!raw) return;
 
-				src.src = canWebM ? tr.webm : tr.mp4;
-				tyx.helperFunctions.setType(src);
-				src.removeAttribute("data-src");
-				v.poster = tr.poster;
-				good.push(src);
+				const tr = buildTransforms(raw);
+				if (tr) {
+					// Cloudinary optimised rendition
+					src.src = canWebM ? tr.webm : tr.mp4;
+					setType(src);
+					src.removeAttribute("data-src");
+					v.poster = tr.poster;
+				} else {
+					// External source (kept as‑is)
+					src.src = raw;
+					setType(src);
+					src.removeAttribute("data-src");
+				}
+				keep.push(src);
 			});
 
-			/* drop any source we didn’t rewrite (kills master fallback) */
+			// Drop stray Cloudinary masters
 			originals
-				.filter((s) => !good.includes(s))
-				.forEach((n) => n.parentElement.removeChild(n));
+				.filter((s) => {
+					const raw = s.dataset.src || s.getAttribute("src") || "";
+					return /\/video\/upload\//.test(raw) && !keep.includes(s);
+				})
+				.forEach((n) => n.remove());
 
-			if (!good.length) return;                                 // nothing left
+			if (!keep.length) return; // nothing playable
 
-			v.removeAttribute("src");                                 // hard-kill stray
+			/* video‑level tweaks */
+			v.removeAttribute("src"); // avoid duplicate fetch
 			v.preload = "none";
-			v.muted = true;
+			v.muted = true;         // mobile autoplay compliance
 
-			const hEls = hoverTriggers(v);
-			const hOnly = hEls.length > 0;
+			const hoverEls = playOnHoverElements(v);
+			const hoverOnly = hoverEls.length > 0;
 
 			if (!useLazy) {
 				v.load();
-				if (!hOnly) playOnScroll(v);
+				if (!hoverOnly) addScrollPlay(v);
 			} else {
-				loadObs.observe(v);
-				if (hOnly) hookHover(v, hEls);
+				loadObserver.observe(v);
+				if (hoverOnly) addHoverHandlers(v, hoverEls);
 			}
 		});
 
-		/* -------------- helpers ---------------------------------------- */
-		function onLoad(entries, obs) {
+		/* —— observers —— */
+		function handleLoad(entries, obs) {
 			entries.forEach(({ isIntersecting, target }) => {
 				if (!isIntersecting || target.dataset.loaded) return;
 				target.load();
 				target.dataset.loaded = "1";
 				obs.unobserve(target);
-				if (!target.autoplay)
-					target.addEventListener("loadeddata", () => target.pause(), {
-						once: true,
-					});
-				if (!hoverTriggers(target).length) playObs.observe(target);
+
+				if (!target.autoplay) {
+					target.addEventListener("loadeddata", () => target.pause(), { once: true });
+				}
+				if (!playOnHoverElements(target).length) playObserver.observe(target);
 			});
 		}
 
-		function onPlay(e) {
-			e.forEach(({ intersectionRatio, target }) => {
+		function handlePlay(entries) {
+			entries.forEach(({ intersectionRatio, target }) => {
 				if (!target.dataset.loaded) return;
-				intersectionRatio >= playT ? target.play() : target.pause();
+				intersectionRatio >= playThreshold ? target.play() : target.pause();
 			});
 		}
 
-		function hookHover(v, els) {
+		/* —— interactions —— */
+		function addHoverHandlers(video, elements) {
 			let playing = false;
-			v.addEventListener("playing", () => (playing = true));
-			v.addEventListener("pause", () => (playing = false));
-			els.forEach((el) => {
+			video.addEventListener("playing", () => (playing = true));
+			video.addEventListener("pause", () => (playing = false));
+
+			elements.forEach((el) => {
 				el.addEventListener("mouseenter", () => {
-					if (!v.dataset.loaded) v.load(), (v.dataset.loaded = "1");
-					if (v.paused && !playing) v.play();
+					if (!video.dataset.loaded) {
+						video.load();
+						video.dataset.loaded = "1";
+					}
+					if (video.paused && !playing) video.play();
 				});
 				el.addEventListener("mouseleave", () => {
-					if (!v.paused && playing) v.pause();
+					if (!video.paused && playing) video.pause();
 				});
 			});
 		}
 
-		function playOnScroll(v) {
-			const fn = () => {
-				const r = v.getBoundingClientRect();
-				const ok = r.top < innerHeight * (1 - playT) &&
-					r.bottom > innerHeight * playT;
-				ok ? v.play() : v.pause();
+		function addScrollPlay(video) {
+			let scheduled = false;
+			const update = () => {
+				scheduled = false;
+				const r = video.getBoundingClientRect();
+				const visible = r.top < innerHeight * (1 - playThreshold) &&
+					r.bottom > innerHeight * playThreshold;
+				visible ? video.play() : video.pause();
 			};
-			addEventListener("scroll", fn, { passive: true });
-			fn();
+			const onScroll = () => {
+				if (!scheduled) {
+					scheduled = true;
+					requestAnimationFrame(update);
+				}
+			};
+			window.addEventListener("scroll", onScroll, { passive: true });
+			update();
 		}
 	};
-
 
 	tyx.functions.randomText = function () {
 		let mm = gsap.matchMedia();
