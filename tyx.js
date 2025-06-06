@@ -848,6 +848,39 @@ function main() {
 		});
 	};
 
+	tyx.functions.pricing = function () {
+		const sections = document.querySelectorAll(".pricing-table");
+		if (!sections) return;
+
+		sections.forEach((section) => {
+			const steps = section.querySelectorAll(".pricing-table_row");
+			if (!steps) return;
+
+			// Set initial state
+			gsap.set(steps, { yPercent: 100, autoAlpha: 0 });
+
+			// Create a timeline for the animation
+			const tl = gsap.timeline({
+				scrollTrigger: {
+					trigger: section,
+					start: "top",
+					end: "bottom 50%",
+					scrub: 1,
+					once: true,
+					markers: true,
+				},
+			});
+
+			tl.to(steps, {
+				yPercent: 0,
+				autoAlpha: 1,
+				stagger: 0.3,
+				duration: 1.3,
+				ease: "power2.out",
+			});
+		});
+	};
+
 	tyx.functions.parallax = function () {
 		// based on https://codepen.io/GreenSock/pen/BarmbXq
 		const parallaxSections = document.querySelectorAll(".s-big-img");
@@ -2021,6 +2054,7 @@ function main() {
 		});
 	};
 
+	tyx.functions.pricing();
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
 	tyx.functions.handleVideos();
