@@ -37,17 +37,19 @@ function main() {
 
 	tyx.functions.handleVideos = () => {
 		/* ——————————————————————————————————————————————————————— constants */
-		const DEF_WIDTH = 1280;           // px, when data-width missing/invalid
-		const DEF_QUALITY = "good";          // Cloudinary q_auto:eco default
-		const PLAY_T = 0.5;            // viewport threshold to play
+		const DEF_WIDTH = 1280; // px, when data-width missing/invalid
+		const DEF_QUALITY = "good"; // Cloudinary q_auto:eco default
+		const PLAY_T = 0.5; // viewport threshold to play
 
 		/* ———————————————————————————————————————————————— helpers (scoped) */
 		const cleanCloudURL = (u = "") =>
 			u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
 
 		const buildTransforms = (url, w, q) => {
-			const m = cleanCloudURL(url).match(/^(https:\/\/[^\/]+\/[^\/]+)\/video\/upload\/v(\d+)\/(.+)$/);
-			if (!m) return null;              // not Cloudinary
+			const m = cleanCloudURL(url).match(
+				/^(https:\/\/[^\/]+\/[^\/]+)\/video\/upload\/v(\d+)\/(.+)$/
+			);
+			if (!m) return null; // not Cloudinary
 			const [, base, ver, rest] = m;
 			const dot = rest.lastIndexOf(".");
 			const pubId = rest.slice(0, dot);
@@ -63,9 +65,9 @@ function main() {
 
 		const normaliseQuality = (q) => {
 			if (!q) return `q_auto:${DEF_QUALITY}`;
-			if (/^\d+$/.test(q)) return `q_${q}`;              // explicit number
+			if (/^\d+$/.test(q)) return `q_${q}`; // explicit number
 			if (/^(eco|good|best|low)$/i.test(q)) return `q_auto:${q.toLowerCase()}`;
-			return `q_auto:${DEF_QUALITY}`;                                   // fallback
+			return `q_auto:${DEF_QUALITY}`; // fallback
 		};
 
 		const setType = (s) => {
@@ -76,7 +78,12 @@ function main() {
 		const hoverTriggers = (video) => {
 			const parent = video.closest("[play-on-hover-parent]");
 			if (parent) {
-				return [parent, ...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(n => !n.contains(video))];
+				return [
+					parent,
+					...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(
+						(n) => !n.contains(video)
+					),
+				];
 			}
 			return video.getAttribute("play-on-hover") === "hover" ? [video] : [];
 		};
@@ -87,27 +94,31 @@ function main() {
 
 		/* ————————————————————————————————————————————— browser capability */
 		const canWebM = !!document.createElement("video").canPlayType('video/webm; codecs="vp9"');
-		const useLazy = (typeof tyx.lazyLoadVideos === "undefined" ? true : tyx.lazyLoadVideos) && "IntersectionObserver" in window;
+		const useLazy =
+			(typeof tyx.lazyLoadVideos === "undefined" ? true : tyx.lazyLoadVideos) &&
+			"IntersectionObserver" in window;
 
-		const loadObs = useLazy ? new IntersectionObserver(onLoad, { rootMargin: "0px 0px 200px 0px" }) : null;
+		const loadObs = useLazy
+			? new IntersectionObserver(onLoad, { rootMargin: "0px 0px 200px 0px" })
+			: null;
 		const playObs = useLazy ? new IntersectionObserver(onPlay, { threshold: PLAY_T }) : null;
 
 		/* —————————————————————————————————————————— initialise each <video> */
-		vids.forEach(v => {
-			if (v.dataset._tyxInit) return;          // idempotent
+		vids.forEach((v) => {
+			if (v.dataset._tyxInit) return; // idempotent
 			v.dataset._tyxInit = "1";
 
 			const originals = [...v.querySelectorAll("source")];
 			const keep = [];
 
-			originals.forEach(src => {
+			originals.forEach((src) => {
 				const raw = src.dataset.src || src.getAttribute("src");
-				if (!raw) return;                       // empty <source>
+				if (!raw) return; // empty <source>
 
 				const tr = buildTransforms(
 					raw,
 					src.getAttribute("data-width"),
-					src.getAttribute("data-quality"),
+					src.getAttribute("data-quality")
 				);
 
 				if (tr) {
@@ -119,7 +130,7 @@ function main() {
 					keep.push(src);
 				} else {
 					/* External ➜ leave untouched except ensure src/type */
-					src.src = raw;           // copy data-src → src if needed
+					src.src = raw; // copy data-src → src if needed
 					setType(src);
 					src.removeAttribute("data-src");
 					keep.push(src);
@@ -127,15 +138,16 @@ function main() {
 			});
 
 			/* prune leftover Cloudinary masters */
-			originals.filter(s => /\/video\/upload\//.test(s.src || s.dataset.src || "") && !keep.includes(s))
-				.forEach(n => n.remove());
+			originals
+				.filter((s) => /\/video\/upload\//.test(s.src || s.dataset.src || "") && !keep.includes(s))
+				.forEach((n) => n.remove());
 
-			if (!keep.length) return;               // nothing playable
+			if (!keep.length) return; // nothing playable
 
 			/* global video attributes */
 			v.removeAttribute("src");
 			v.preload = "none";
-			v.muted = true;                       // autoplay safety
+			v.muted = true; // autoplay safety
 
 			const hEls = hoverTriggers(v);
 			const hOnly = hEls.length > 0;
@@ -156,7 +168,8 @@ function main() {
 				target.load();
 				target.dataset.loaded = "1";
 				obs.unobserve(target);
-				if (!target.autoplay) target.addEventListener("loadeddata", () => target.pause(), { once: true });
+				if (!target.autoplay)
+					target.addEventListener("loadeddata", () => target.pause(), { once: true });
 				if (!hoverTriggers(target).length) playObs.observe(target);
 			});
 		}
@@ -171,11 +184,14 @@ function main() {
 		/* ——————————————————————————————————————————— hover handling */
 		function hookHover(v, els) {
 			let playing = false;
-			v.addEventListener("playing", () => playing = true);
-			v.addEventListener("pause", () => playing = false);
-			els.forEach(el => {
+			v.addEventListener("playing", () => (playing = true));
+			v.addEventListener("pause", () => (playing = false));
+			els.forEach((el) => {
 				el.addEventListener("mouseenter", () => {
-					if (!v.dataset.loaded) { v.load(); v.dataset.loaded = "1"; }
+					if (!v.dataset.loaded) {
+						v.load();
+						v.dataset.loaded = "1";
+					}
 					if (v.paused && !playing) v.play();
 				});
 				el.addEventListener("mouseleave", () => {
@@ -193,7 +209,9 @@ function main() {
 				const inView = r.top < innerHeight * (1 - PLAY_T) && r.bottom > innerHeight * PLAY_T;
 				inView ? v.play() : v.pause();
 			};
-			const onScroll = () => { if (!raf) raf = requestAnimationFrame(evaluate); };
+			const onScroll = () => {
+				if (!raf) raf = requestAnimationFrame(evaluate);
+			};
 			addEventListener("scroll", onScroll, { passive: true });
 			evaluate();
 		}
@@ -237,7 +255,7 @@ function main() {
 				});
 			});
 
-			return () => { };
+			return () => {};
 		});
 	};
 
@@ -656,28 +674,18 @@ function main() {
 			},
 		});
 		tl.to(
-			[".s-home-intro .section-bg-neg", ".s-home-stats", ".s-magic-carousel"],
+			[".s-home-intro", ".s-home-stats", ".s-magic-carousel"],
 			{
-				backgroundColor: "var(--_color---grey--dark-2)",
+				"--_theme---bg": "#1a1a1a",
 				"--_theme---body": "white",
-				"--_theme---link": "var(--_color---blue--mid)",
-				"--_theme---link-hover": "var(--_color---purple--mid)",
+				"--_theme---link": "#5050e0",
+				"--_theme---link-hover": "#9f9ff5",
 			},
 			0
 		);
-		// tl.to(
-		// 	[".s-home-intro .label, .s-home-stats .label"],
-		// 	{
-		// 		color: "white",
-		// 	},
-		// 	0
-		// );
 	};
 
-	tyx.helperFunctions.splideArrows = function (
-		splide,
-		inactiveClass = "is-inactive"
-	) {
+	tyx.helperFunctions.splideArrows = function (splide, inactiveClass = "is-inactive") {
 		const prev = splide.root.querySelector(".splide__arrow--prev");
 		const next = splide.root.querySelector(".splide__arrow--next");
 
@@ -732,11 +740,14 @@ function main() {
 			const cards = document.querySelectorAll(".home-service-card");
 			cards.forEach((card) => {
 				const bottom = card.querySelector(".home-service-card_bottom");
-				const tl = gsap.timeline({ paused: true, reversed: true })
+				const tl = gsap
+					.timeline({ paused: true, reversed: true })
 					.to(bottom, { height: "auto", duration: 0.3 });
 				gsap.set(bottom, { height: 0 });
 
-				function toggle() { tl.reversed() ? tl.play() : tl.reverse(); }
+				function toggle() {
+					tl.reversed() ? tl.play() : tl.reverse();
+				}
 				card.addEventListener("mouseenter", toggle);
 				card.addEventListener("mouseleave", toggle);
 			});
@@ -766,7 +777,6 @@ function main() {
 
 		splide.mount();
 	};
-
 
 	tyx.functions.teamSlider = function () {
 		var check = document.querySelector(".s-team .splide");
@@ -1697,7 +1707,6 @@ function main() {
 		});
 	};
 
-
 	tyx.helperFunctions.horizontalLoop = function (items, config) {
 		let timeline;
 		items = gsap.utils.toArray(items);
@@ -2006,7 +2015,7 @@ function main() {
 				let { isDesktop, isMobile, reduceMotion } = context.conditions;
 
 				if (reduceMotion) {
-					return () => { }; // Skip slider entirely
+					return () => {}; // Skip slider entirely
 				}
 
 				// Clean up old loop if re-init (in case of breakpoint change)
@@ -2024,7 +2033,7 @@ function main() {
 							},
 							speed: isDesktop ? 1.2 : 0.6,
 							center: true,
-							onChange: (element, index) => { },
+							onChange: (element, index) => {},
 						});
 						loop.refresh(true);
 
