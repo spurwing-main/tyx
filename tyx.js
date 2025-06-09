@@ -873,11 +873,11 @@ function main() {
 			const tl = gsap.timeline({
 				scrollTrigger: {
 					trigger: section,
-					start: "top",
-					end: "bottom 50%",
+					start: "top 80%",
+					end: "bottom 80%",
 					scrub: 1,
 					once: true,
-					markers: true,
+					// markers: true,
 				},
 			});
 
