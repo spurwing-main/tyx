@@ -2148,7 +2148,7 @@ function main() {
 	tyx.functions.pricing();
 	tyx.functions.homeHero();
 	tyx.functions.changeIntroColors();
-	tyx.functions.handleVideos();
+	// tyx.functions.handleVideos();
 	tyx.functions.counter();
 	tyx.functions.serviceCard();
 	tyx.functions.chaosMarquee();
@@ -2157,7 +2157,6 @@ function main() {
 	tyx.functions.benefits();
 
 	tyx.functions.textAnim();
-	// tyx.functions.sticky5050();
 
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
