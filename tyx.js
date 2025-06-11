@@ -474,19 +474,43 @@ function main() {
 							containerBounds = container.getBoundingClientRect();
 						return Math.max(0, lastItemBounds.right - containerBounds.right);
 					};
-				gsap.to(container, {
-					x: () => -distance(), // make sure it dynamically calculates things so that it adjusts to resizes
-					ease: "none",
-					scrollTrigger: {
-						trigger: container,
-						start: "center center",
-						pinnedContainer: section,
-						end: () => "+=" + distance(),
-						pin: section,
-						scrub: true,
-						invalidateOnRefresh: true, // will recalculate any function-based tween values on resize/refresh (making it responsive)
-					},
+
+				let containerSelector = gsap.utils.selector(container);
+				let bgs = containerSelector(".benefit-card_bg");
+				console.log(bgs);
+
+				// let dist = distance(); // store the distance so it's available for both animations
+
+				// Set up the ScrollTrigger separately so we can share it
+				let scrollTrigger = {
+					trigger: container,
+					start: "center center",
+					pinnedContainer: section,
+					end: () => "+=" + distance(),
+					pin: section,
+					scrub: true,
+					invalidateOnRefresh: true,
+				};
+
+				const tl = gsap.timeline({
+					scrollTrigger: scrollTrigger,
 				});
+
+				// Move container left
+				tl.to(container, {
+					x: () => -distance(),
+					ease: "none",
+				});
+
+				// // Move backgrounds right (parallax effect)
+				// tl.to(
+				// 	bgs,
+				// 	{
+				// 		x: () => distance(), // adjust multiplier for stronger/weaker parallax
+				// 		ease: "none",
+				// 	},
+				// 	0
+				// );
 			});
 
 			return () => {
@@ -1018,6 +1042,65 @@ function main() {
 		});
 	};
 
+	tyx.functions.sticky5050_v2 = function () {
+		gsap.set(".sticky-5050_right", { position: "static" });
+
+		function getMediaOffset(mediaWrapper) {
+			const rect = mediaWrapper.getBoundingClientRect();
+			return rect.height / 2;
+		}
+
+		document.querySelectorAll(".s-sticky-5050").forEach((section) => {
+			const right = section.querySelector(".sticky-5050_right");
+			const items = section.querySelectorAll(".sticky-5050_left-item");
+			const mediaInners = section.querySelectorAll(".sticky-5050_media-inner");
+			const mediaWrapper = section.querySelector(".sticky-5050_media");
+
+			// pin media wrapper
+			ScrollTrigger.create({
+				trigger: section,
+				start: "top top",
+				end: "bottom bottom",
+				pin: right,
+				pinSpacing: "margin", // seems to make pinning more reliable
+			});
+
+			// Step 2: Set initial state of media
+			for (let i = 1; i < mediaInners.length; i++) {
+				gsap.set(mediaInners[i], {
+					clipPath: "inset(100% 0% 0% 0%)",
+				});
+			}
+
+			// Step 3: Animate each image in on scroll
+			items.forEach((item, i) => {
+				const currentMedia = mediaInners[i];
+				if (!currentMedia) return;
+				if (i === 0) {
+					// Skip the first item, as it should always be visible
+					return;
+				}
+
+				ScrollTrigger.create({
+					trigger: item,
+					start: () => `top-=${getMediaOffset(mediaWrapper)}px center`,
+					end: () => `top+=${getMediaOffset(mediaWrapper)}px center`,
+					scrub: true,
+					onUpdate: (self) => {
+						// Reveal this one
+						const progress = self.progress;
+						gsap.to(currentMedia, {
+							clipPath: `inset(${(1 - progress) * 100}% 0% 0% 0%)`,
+							ease: "none",
+							duration: 0,
+							overwrite: true,
+						});
+					},
+				});
+			});
+		});
+	};
+
 	tyx.functions.serviceHero = function () {
 		const sections = document.querySelectorAll(".s-service-hero");
 		if (!sections) return;
@@ -1231,7 +1314,6 @@ function main() {
 				// markers: true,
 				toggleActions: "play none none reverse",
 				pin: true,
-				pinSpacing: true,
 				anticipatePin: 1,
 			};
 
@@ -2075,7 +2157,8 @@ function main() {
 	tyx.functions.benefits();
 
 	tyx.functions.textAnim();
-	tyx.functions.sticky5050();
+	// tyx.functions.sticky5050();
+
 	tyx.functions.serviceHero();
 	tyx.functions.visualiser();
 	tyx.functions.faq();
@@ -2098,6 +2181,12 @@ function main() {
 	document.fonts.ready.then(function () {
 		gsap.set(".anim-in", { autoAlpha: 1 });
 		tyx.functions.randomText();
+
 		// tyx.functions.counter();
 	});
+
+	setTimeout(() => {
+		ScrollTrigger.refresh();
+		tyx.functions.sticky5050_v2();
+	}, 2500); // adjust delay as needed
 }
