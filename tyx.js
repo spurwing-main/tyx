@@ -36,7 +36,6 @@ function main() {
 	})();
 
 	tyx.functions.handleVideos = () => {
-		return;
 		/* ——————————————————————————————————————————————————————— constants */
 		const DEF_WIDTH = 1280; // px, when data-width missing/invalid
 		const DEF_QUALITY = "good"; // Cloudinary q_auto:eco default
@@ -166,7 +165,8 @@ function main() {
 		/* ————————————————————————————————————————————— observers */
 		function onLoad(entries, obs) {
 			entries.forEach(({ isIntersecting, target }) => {
-				if (!isIntersecting || target.dataset.loaded) return;
+				if (!isIntersecting || target.dataset.loaded === "1" || target.dataset._tyxLoaded === "1") return;
+				target.dataset._tyxLoaded = "1"; // mark as loaded before calling .load()
 				target.load();
 				target.dataset.loaded = "1";
 				obs.unobserve(target);
@@ -190,7 +190,8 @@ function main() {
 			v.addEventListener("pause", () => (playing = false));
 			els.forEach((el) => {
 				el.addEventListener("mouseenter", () => {
-					if (!v.dataset.loaded) {
+					if (v.dataset._tyxLoaded !== "1") {
+						v.dataset._tyxLoaded = "1";
 						v.load();
 						v.dataset.loaded = "1";
 					}
