@@ -176,7 +176,6 @@ function main() {
 				if (!hoverTriggers(target).length) playObs.observe(target);
 			});
 		}
-		s;
 
 		function onPlay(entries) {
 			entries.forEach(({ intersectionRatio, target }) => {
