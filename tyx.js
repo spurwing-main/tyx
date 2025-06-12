@@ -41,6 +41,9 @@ function main() {
 		const DEF_QUALITY = "good"; // Cloudinary q_auto:eco default
 		const PLAY_T = 0.5; // viewport threshold to play
 
+		// Detect iOS Safari (to avoid using WebM, which is unsupported)
+		const isIOSSafari = /iP(ad|hone|od).+Version\/[\d.]+.*Safari/i.test(navigator.userAgent);
+
 		/* ———————————————————————————————————————————————— helpers (scoped) */
 		const cleanCloudURL = (u = "") =>
 			u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
@@ -106,7 +109,8 @@ function main() {
 
 		/* —————————————————————————————————————————— initialise each <video> */
 		vids.forEach((v) => {
-			if (v.dataset._tyxInit) return; // idempotent
+			// Prevent double-initialization (idempotency)
+			if (v.dataset._tyxInit) return;
 			v.dataset._tyxInit = "1";
 
 			const originals = [...v.querySelectorAll("source")];
@@ -124,7 +128,12 @@ function main() {
 
 				if (tr) {
 					/* Cloudinary ➜ swap in optimised rendition */
-					src.src = canWebM ? tr.webm : tr.mp4;
+					// Only use WebM if supported and not iOS Safari
+					if (!isIOSSafari && canWebM) {
+						src.src = tr.webm;
+					} else {
+						src.src = tr.mp4;
+					}
 					setType(src);
 					src.removeAttribute("data-src");
 					v.poster = tr.poster;
@@ -153,8 +162,13 @@ function main() {
 			const hEls = hoverTriggers(v);
 			const hOnly = hEls.length > 0;
 
+			// Only call .load() ONCE per video, after all sources are set
 			if (!useLazy) {
-				v.load();
+				if (!v.dataset._tyxLoaded) {
+					v.dataset._tyxLoaded = "1";
+					v.load();
+					v.dataset.loaded = "1";
+				}
 				if (!hOnly) playOnScroll(v);
 			} else {
 				loadObs.observe(v);
@@ -165,6 +179,7 @@ function main() {
 		/* ————————————————————————————————————————————— observers */
 		function onLoad(entries, obs) {
 			entries.forEach(({ isIntersecting, target }) => {
+				// Defensive: Only load if not already loaded or loading
 				if (!isIntersecting || target.dataset.loaded === "1" || target.dataset._tyxLoaded === "1")
 					return;
 				target.dataset._tyxLoaded = "1"; // mark as loaded before calling .load()
@@ -193,6 +208,7 @@ function main() {
 			v.addEventListener("pause", () => (playing = false));
 			els.forEach((el) => {
 				el.addEventListener("mouseenter", () => {
+					// Defensive: Only load if not already loaded or loading
 					if (v.dataset._tyxLoaded !== "1") {
 						v.dataset._tyxLoaded = "1";
 						v.load();
