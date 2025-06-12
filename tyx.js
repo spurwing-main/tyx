@@ -42,7 +42,8 @@ function main() {
 		const PLAY_T = 0.5; // viewport threshold to play
 
 		// Detect iOS Safari (to avoid using WebM, which is unsupported)
-		const isIOSSafari = /iP(ad|hone|od).+Version\/[\d.]+.*Safari/i.test(navigator.userAgent);
+		// const isIOSSafari = /iP(ad|hone|od).+Version\/[\d.]+.*Safari/i.test(navigator.userAgent);
+		let isIOSSafari = false;
 
 		/* ———————————————————————————————————————————————— helpers (scoped) */
 		const cleanCloudURL = (u = "") =>
