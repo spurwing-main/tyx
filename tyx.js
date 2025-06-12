@@ -165,7 +165,8 @@ function main() {
 		/* ————————————————————————————————————————————— observers */
 		function onLoad(entries, obs) {
 			entries.forEach(({ isIntersecting, target }) => {
-				if (!isIntersecting || target.dataset.loaded === "1" || target.dataset._tyxLoaded === "1") return;
+				if (!isIntersecting || target.dataset.loaded === "1" || target.dataset._tyxLoaded === "1")
+					return;
 				target.dataset._tyxLoaded = "1"; // mark as loaded before calling .load()
 				target.load();
 				target.dataset.loaded = "1";
@@ -175,6 +176,7 @@ function main() {
 				if (!hoverTriggers(target).length) playObs.observe(target);
 			});
 		}
+		s;
 
 		function onPlay(entries) {
 			entries.forEach(({ intersectionRatio, target }) => {
