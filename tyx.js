@@ -91,6 +91,7 @@ function main() {
 		/* ———————————————————————————————————————————————— early exit */
 		const vids = [...document.querySelectorAll("video")];
 		if (!vids.length) return;
+		console.log(vids);
 
 		/* ————————————————————————————————————————————— browser capability */
 		const canWebM = !!document.createElement("video").canPlayType('video/webm; codecs="vp9"');
