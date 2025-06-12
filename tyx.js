@@ -170,6 +170,8 @@ function main() {
 				target.dataset._tyxLoaded = "1"; // mark as loaded before calling .load()
 				target.load();
 				target.dataset.loaded = "1";
+				console.log("[tyx] Video loaded:", target); // ← log when loaded
+
 				obs.unobserve(target);
 				if (!target.autoplay)
 					target.addEventListener("loadeddata", () => target.pause(), { once: true });
