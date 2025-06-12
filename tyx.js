@@ -36,6 +36,7 @@ function main() {
 	})();
 
 	tyx.functions.handleVideos = () => {
+		return;
 		/* ——————————————————————————————————————————————————————— constants */
 		const DEF_WIDTH = 1280; // px, when data-width missing/invalid
 		const DEF_QUALITY = "good"; // Cloudinary q_auto:eco default
