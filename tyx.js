@@ -901,7 +901,6 @@ function main() {
 					end: "bottom 80%",
 					scrub: 1,
 					once: true,
-					// markers: true,
 				},
 			});
 
@@ -971,7 +970,6 @@ function main() {
 					scrub: true,
 					start: "top bottom",
 					end: "bottom top",
-					// markers: true,
 				},
 			});
 		});
@@ -1129,7 +1127,6 @@ function main() {
 					start: "bottom 95%",
 					end: "bottom 70%",
 					scrub: true,
-					// markers: true,
 				},
 			});
 			// fade out bg
@@ -1311,7 +1308,6 @@ function main() {
 				start: `top+=${triggerDistance} top`,
 				end: "+=20%", // pin for 100% of viewport height
 				scrub: false,
-				// markers: true,
 				toggleActions: "play none none reverse",
 				pin: true,
 				anticipatePin: 1,
