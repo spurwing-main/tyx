@@ -723,8 +723,8 @@ function main() {
 			{
 				"--_theme---bg": "#1a1a1a",
 				"--_theme---body": "white",
-				"--_theme---link": "#5050e0",
-				"--_theme---link-hover": "#9f9ff5",
+				"--_theme---link": "#9F9FF5",
+				"--_theme---link-hover": "#9F9FF5",
 			},
 			0
 		);
