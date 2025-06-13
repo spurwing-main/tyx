@@ -1454,6 +1454,60 @@ function main() {
 		updateBackgroundColor();
 	};
 
+	tyx.functions.fancyHero_v2 = function () {
+		const sections = document.querySelectorAll(".s-fh");
+		if (!sections.length) return;
+
+		sections.forEach((section) => {
+			const media = section.querySelector(".fh_media");
+
+			let markers = false;
+
+			const titles = section.querySelectorAll(".fh_titles .title-l");
+			if (titles.length >= 2) {
+				gsap.to(titles[1], {
+					x: () => -titles[1].getBoundingClientRect().left,
+					ease: "power1.out",
+					scrollTrigger: {
+						trigger: section,
+						start: "top top",
+						end: "+=40% top",
+						scrub: 1,
+						invalidateOnRefresh: true,
+						markers: markers,
+					},
+				});
+				gsap.to(titles[0], {
+					x: () => window.innerWidth - titles[0].getBoundingClientRect().right,
+					ease: "power1.out",
+					scrollTrigger: {
+						trigger: section,
+						start: "top top",
+						end: "+=40% top",
+						scrub: 1,
+						invalidateOnRefresh: true,
+						markers: markers,
+					},
+				});
+			}
+
+			// Media scaling animation
+			if (media) {
+				gsap.to(media, {
+					scale: 1,
+					ease: "power1.out",
+					scrollTrigger: {
+						trigger: ".s-fh",
+						start: "top top",
+						end: "bottom bottom",
+						scrub: 1,
+						markers: markers,
+					},
+				});
+			}
+		});
+	};
+
 	tyx.functions.nav = function () {
 		/* ───────────────────────── CONFIG ───────────────────────── */
 		const DEBUG = true; // 🔧 set true to see logs
@@ -2183,7 +2237,8 @@ function main() {
 	tyx.functions.magicCarousel();
 	tyx.functions.largeSlider();
 	tyx.functions.teamSlider();
-	tyx.functions.fancyHero();
+	// tyx.functions.fancyHero();
+	tyx.functions.fancyHero_v2();
 	tyx.functions.nav();
 	tyx.functions.magicModal();
 	//tyx.functions.chaosMarqueeV2();
