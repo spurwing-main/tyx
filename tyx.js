@@ -1527,26 +1527,61 @@ function main() {
 		log("init", { nav, subnav });
 
 		/* Thresholds (vh ratios) – tweak if ever needed */
-		const MAIN_THRESHOLD = 0.5; // 50 vh
+		// const MAIN_THRESHOLD = 0.5; // 50 vh
 		const SUB_THRESHOLD = 1.0; // 100 vh
+
+		/* Thresholds */
+		const hideThreshold = 100; // Distance to scroll before hiding is allowed
+		const showThreshold = 50; // Distance from the top where the nav is always shown
+		const revealBuffer = 50; // Buffer distance for revealing on scroll up
+
+		let lastScrollY = window.scrollY;
+		let scrollBuffer = 0;
+
+		// state flags
+		let subnavOpen = false;
+		let subnavVisible = false;
 
 		/* ─────────────────────── 1) MAIN NAV show / hide ──────────────────────── */
 		ScrollTrigger.create({
 			trigger: document.body,
 			start: "top top",
 			end: "bottom bottom",
-			onUpdate(self) {
-				/* Always hide while sub-nav is open (per your “yes”) */
-				if (subnav && subnav.classList.contains("is-open")) {
+			onUpdate: (self) => {
+				if (subnavVisible) {
+					// If the subnav is visible, keep the main nav hidden
 					nav.classList.add("is-hidden");
-					nav.classList.add("is-past-threshold");
 					return;
 				}
 
-				const inside = self.scroll() <= window.innerHeight * MAIN_THRESHOLD;
+				const currentScrollY = window.scrollY;
+				const deltaY = currentScrollY - lastScrollY;
 
-				nav.classList.toggle("is-hidden", !inside);
-				nav.classList.toggle("is-past-threshold", !inside);
+				if (currentScrollY <= showThreshold) {
+					// Always show nav near the top
+					nav.classList.remove("is-hidden", "is-past-threshold");
+					scrollBuffer = 0;
+				} else if (deltaY > 0 && currentScrollY > hideThreshold) {
+					// Hide nav when scrolling down past the hideThreshold
+					nav.classList.add("is-hidden", "is-past-threshold");
+					scrollBuffer = 0;
+				} else if (deltaY < 0) {
+					// Reveal nav when scrolling up
+					scrollBuffer -= deltaY;
+					if (scrollBuffer >= revealBuffer) {
+						nav.classList.remove("is-hidden");
+						scrollBuffer = 0;
+					}
+				}
+
+				// Add or remove the is-past-threshold class based on scroll position
+				if (currentScrollY > hideThreshold) {
+					nav.classList.add("is-past-threshold");
+				} else {
+					nav.classList.remove("is-past-threshold");
+				}
+
+				lastScrollY = currentScrollY; // Update last scroll position
 			},
 		});
 
@@ -1562,12 +1597,14 @@ function main() {
 				onEnter() {
 					log("subnav → open");
 					subnav.classList.add("is-open");
+					subnavVisible = true;
 					nav.classList.add("is-hidden"); // keep main nav hidden
 				},
 				/* leave zone back upward → close */
 				onLeaveBack() {
 					log("subnav → close");
 					subnav.classList.remove("is-open");
+					subnavVisible = false;
 					/* main nav visibility now handled by its own trigger */
 				},
 			});
@@ -1605,6 +1642,10 @@ function main() {
 						onComplete() {
 							subnav.style.height = "auto"; // Let it auto-expand if content changes
 							linksOpen = true;
+							// update state flag
+							subnavOpen = true;
+							// hide main nav
+							nav.classList.add("is-hidden");
 						},
 					});
 				} else {
@@ -1615,6 +1656,9 @@ function main() {
 						ease: "power2.inOut",
 						onComplete() {
 							linksOpen = false;
+							subnavOpen = false;
+							// Show main nav again when subnav closes
+							nav.classList.remove("is-hidden");
 						},
 					});
 				}
