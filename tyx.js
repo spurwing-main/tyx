@@ -1126,7 +1126,7 @@ function main() {
 
 		sections.forEach((section) => {
 			const heading = section.querySelector(".service-hero_heading");
-			const bg = section.querySelector(".service-hero_bg");
+			const bgImage = section.querySelector(".service-hero_media-wrap");
 
 			gsap.set(heading, { yPercent: 200, autoAlpha: 1 });
 
@@ -1151,7 +1151,7 @@ function main() {
 				},
 			});
 			// fade out bg
-			bg_tl.to(bg, {
+			bg_tl.to(bgImage, {
 				opacity: 0.1,
 				ease: "power2.out",
 			});
