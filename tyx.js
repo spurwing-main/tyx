@@ -1778,6 +1778,9 @@ function main() {
 				log("mobile hamburger", open ? "open" : "close");
 				nav.classList.toggle("is-open", open);
 
+				// Add or remove the no-scroll class on the body
+				document.body.classList.toggle("no-scroll", open);
+
 				const fullH = CSS.supports("height:100dvh") ? "100dvh" : "100vh";
 
 				gsap
@@ -1829,6 +1832,7 @@ function main() {
 				accordions.forEach(({ toggle, fn }) => toggle.removeEventListener("click", fn));
 				gsap.set(drawer, { height: 0, autoAlpha: 0 });
 				nav.classList.remove("is-open");
+				document.body.classList.remove("no-scroll"); // Ensure no-scroll is removed on cleanup
 				nav.style.removeProperty("height");
 			};
 		});
