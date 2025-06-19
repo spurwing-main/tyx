@@ -2285,7 +2285,6 @@ function main() {
 	tyx.functions.magicCarousel();
 	tyx.functions.largeSlider();
 	tyx.functions.teamSlider();
-	// tyx.functions.fancyHero();
 	tyx.functions.fancyHero_v2();
 	tyx.functions.nav();
 	tyx.functions.magicModal();
