@@ -18,9 +18,11 @@ let currentIndex = 0;
 let snapPoints = [];
 let collapsedWidthVar = "--es--w-collapsed"; // CSS variable for collapsed width
 let expandedWidthVar = "--es--w-expanded"; // CSS variable for expanded width
-let expandedDetailWidthVar = "--es--detail-w-expanded"; // CSS
+let expandedDetailWidthVar = "--es--detail-w-expanded";
+let containerWidthVar = "--container--width";
 const mm_value = "(max-width: 768px)"; // media query for mobile
 let isMobile = window.matchMedia(mm_value).matches;
+let calculatedExpandedWidth = null; // Store the computed width
 
 const modals = Array.from(document.querySelectorAll(".es-modal"));
 const modalOpenDuration = 0.5; // duration for modal open/close animations
@@ -44,7 +46,7 @@ function openCloseESCards() {
 		tl.to(contentHidden, { height: () => contentHidden.scrollHeight + "px" }, "<");
 		tl.to(detail, { width: "var(" + expandedDetailWidthVar + ")", autoAlpha: 1 }, 0.1);
 
-		tl.to(card, { width: "var(" + expandedWidthVar + ")" }, 0.1);
+		tl.to(card, { width: () => calculatedExpandedWidth + "px" }, 0.1);
 		tl.to(icon, { rotate: "45deg" }, 0.2);
 
 		// snap card when timeline starts
@@ -413,25 +415,14 @@ function onResize() {
 		}
 	});
 
+	//update the expanded width based on the current viewport
+	calculatedExpandedWidth();
+
 	// recalc bounds & snap back to the current index
 	updateSliderBounds();
 	updateSnapPoints();
 	snapToIndex(currentIndex);
 }
-
-// DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-	gsap.registerPlugin(Draggable);
-
-	openCloseESCards();
-	myDraggableInstance = makeSliderDraggable();
-	updateSnapPoints();
-
-	window.addEventListener("resize", onResize);
-
-	initialiseModals();
-	patchDetailBg();
-});
 
 function getRemInPixels() {
 	return parseFloat(getComputedStyle(document.documentElement).fontSize);
@@ -440,6 +431,13 @@ function getRemInPixels() {
 // function to return CSS variable value
 function getCssVar(varName) {
 	return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+}
+
+function calculateExpandedWidth() {
+	const containerWidth = 0.9 * parseFloat(getCssVar(containerWidthVar)) * getRemInPixels();
+	const expandedWidth = parseFloat(getCssVar(expandedWidthVar)) * getRemInPixels();
+	const windowWidth = window.innerWidth;
+	calculatedExpandedWidth = Math.min(expandedWidth, containerWidth, windowWidth);
 }
 
 function patchDetailBg() {
@@ -451,3 +449,17 @@ function patchDetailBg() {
 		detail.style.backdropFilter = "none"; // remove the filter
 	});
 }
+
+// INITIALIZATION
+function init() {
+	gsap.registerPlugin(Draggable);
+	calculatedExpandedWidth();
+	openCloseESCards();
+	myDraggableInstance = makeSliderDraggable();
+	updateSnapPoints();
+	window.addEventListener("resize", onResize);
+	initialiseModals();
+	patchDetailBg();
+}
+
+init();
