@@ -1029,10 +1029,30 @@ function main() {
 	};
 
 	tyx.functions.textAnim = function () {
+		// first handle any heading elements with a text-anim class - we need to change them into a div, and create a hidden heading element with the original text, with a .visually-hidden class
+		const textAnimsHeadings = document.querySelectorAll(":is(h1, h2, h3, h4, h5).text-anim");
+		if (!textAnimsHeadings.length) return;
+
+		textAnimsHeadings.forEach((el) => {
+			// create a new div element
+			const newDiv = document.createElement("div");
+			newDiv.className = el.classList.toString();
+			newDiv.innerHTML = el.innerHTML; // copy the inner HTML
+
+			// add new div as a sibling
+			el.parentNode.insertBefore(newDiv, el.nextSibling);
+
+			// remove text-anim class from the original element and add a visually-hidden class
+			el.classList.remove("text-anim");
+			el.classList.add("visually-hidden");
+		});
+
+		// then process the non-heading text-anim elements, and the newly created divs
 		document.querySelectorAll(".text-anim").forEach((el) => {
 			const split = new SplitText(el, {
 				type: "words, chars",
 				tag: "span",
+				aria: "hidden", // only set aria hidden on the new characters, don't add new aria-label to the original text
 			});
 
 			gsap.set(el, { opacity: 1 });
