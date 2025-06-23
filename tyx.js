@@ -35,6 +35,38 @@ function main() {
 		};
 	})();
 
+	tyx.functions.faqRichResults = function () {
+		let faqArray = [];
+		let faqItems = document.querySelectorAll(".faq-item");
+
+		// for each faq item, get q and answer
+		for (let i = 0; i < faqItems.length; i++) {
+			let question = faqItems[i].querySelector(".faq-item_q").innerText;
+			let answer = faqItems[i].querySelector(".faq-item_body-inner > .rich-text").innerText;
+
+			faqArray.push({
+				"@type": "Question",
+				name: question,
+				acceptedAnswer: {
+					"@type": "Answer",
+					text: answer,
+				},
+			});
+		}
+
+		let faqSchema = {
+			"@context": "https://schema.org",
+			"@type": "FAQPage",
+			mainEntity: faqArray,
+		};
+
+		let script = document.createElement("script");
+		script.type = "application/ld+json";
+		script.innerHTML = JSON.stringify(faqSchema);
+
+		document.getElementsByTagName("head")[0].appendChild(script);
+	};
+
 	tyx.functions.handleVideos = () => {
 		/* ——————————————————————————————————————————————————————— constants */
 		const DEF_WIDTH = 1280; // px, when data-width missing/invalid
@@ -2263,6 +2295,8 @@ function main() {
 			}
 		});
 	};
+
+	tyx.functions.faqRichResults();
 
 	tyx.functions.pricing();
 	tyx.functions.homeHero();
