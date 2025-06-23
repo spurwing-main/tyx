@@ -416,7 +416,7 @@ function onResize() {
 	});
 
 	//update the expanded width based on the current viewport
-	calculatedExpandedWidth();
+	calculateExpandedWidth();
 
 	// recalc bounds & snap back to the current index
 	updateSliderBounds();
@@ -438,6 +438,7 @@ function calculateExpandedWidth() {
 	const expandedWidth = parseFloat(getCssVar(expandedWidthVar)) * getRemInPixels();
 	const windowWidth = window.innerWidth;
 	calculatedExpandedWidth = Math.min(expandedWidth, containerWidth, windowWidth);
+	console.log("Calculated expanded width:", calculatedExpandedWidth);
 }
 
 function patchDetailBg() {
@@ -453,7 +454,7 @@ function patchDetailBg() {
 // INITIALIZATION
 function init() {
 	gsap.registerPlugin(Draggable);
-	calculatedExpandedWidth();
+	calculateExpandedWidth();
 	openCloseESCards();
 	myDraggableInstance = makeSliderDraggable();
 	updateSnapPoints();
