@@ -35,6 +35,51 @@ function main() {
 		};
 	})();
 
+	tyx.functions.mapbox = function () {
+		// Set your Mapbox access token
+		mapboxgl.accessToken =
+			"pk.eyJ1Ijoic3B1cndpbmctc3AiLCJhIjoiY21jOTl0ZmxjMDc5OTJrczlpdHFkNnRnMyJ9.dKXTGojiPxqQbVxTq2L0eg";
+
+		// Find all map components on the page
+		const mapComponents = document.querySelectorAll(".map");
+
+		mapComponents.forEach((mapComponent) => {
+			const mapContainer = mapComponent.querySelector(".map_mapbox");
+			if (!mapContainer) return;
+
+			// Get lat/long from data attributes, fallback to defaults if missing
+			const lat = parseFloat(mapComponent.getAttribute("data-lat")) || 51.5434529;
+			const lng = parseFloat(mapComponent.getAttribute("data-long")) || -0.122596;
+
+			const map = new mapboxgl.Map({
+				container: mapContainer,
+				style: "mapbox://styles/spurwing-sp/cmc99cxxj008j01sh73j11qbt",
+				center: [lng, lat],
+				zoom: 15,
+			});
+
+			const markerEl = document.createElement("div");
+			markerEl.className = "marker";
+			markerEl.innerHTML = `
+            <svg width="42" height="42" viewBox="0 0 42 42" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path d="M31.5 0L42 10.5L31.5 21L42 31.5L31.5 42L21 31.5L10.5 42L0 31.5L10.5 21L0 10.5L10.5 0L21 10.5L31.5 0Z"
+                    fill="#5050E0"/>
+            </svg>
+        `;
+
+			new mapboxgl.Marker(markerEl).setLngLat([lng, lat]).addTo(map);
+			const nav = new mapboxgl.NavigationControl();
+			map.addControl(nav, "bottom-right");
+
+			if (window.matchMedia("(pointer: coarse)").matches) {
+				map.dragPan.disable();
+				map.scrollZoom.disable();
+				map.touchZoomRotate.disable();
+			}
+		});
+	};
+
 	tyx.functions.faqRichResults = function () {
 		let faqArray = [];
 		let faqItems = document.querySelectorAll(".faq-item");
@@ -317,7 +362,7 @@ function main() {
 		const scrollTargetDsk = document.querySelector(".scroll-target-dsk");
 		const sizeTargetDsk = document.querySelector(".size-target-dsk");
 		if (!mediaElem || !scrollTargetDsk) {
-			console.error("[Hero Animation] Missing required elements.");
+			// console.error("[Hero Animation] Missing required elements.");
 			return;
 		}
 
@@ -2342,7 +2387,7 @@ function main() {
 	tyx.functions.fancyHero_v2();
 	tyx.functions.nav();
 	tyx.functions.magicModal();
-	//tyx.functions.chaosMarqueeV2();
+	tyx.functions.mapbox();
 
 	// parallax functions need to be called at end once GSAP has moved things around, otherwise heights are off - especially benefits()
 	ScrollTrigger.refresh();
