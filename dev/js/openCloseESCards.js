@@ -23,6 +23,7 @@ let expandedDetailWidthVar = "--es--detail-w-expanded"; // CSS variable for expa
 const mm_value = "(max-width: 768px)"; // media query for mobile
 let maxWidth, containerWidth;
 let expandedWidth = getExpandedWidth();
+let collapsedWidth = getRemVarInPx(collapsedWidthVar);
 let isMobile = window.matchMedia(mm_value).matches; // also updated on resize
 
 const modals = Array.from(document.querySelectorAll(".es-modal"));
@@ -30,6 +31,21 @@ const modalOpenDuration = 0.5; // duration for modal open/close animations
 let isAnyModalOpen = false; // state to check if a modal is open
 
 const cardTimelines = new Map(); // timelines for each card
+
+function updateSliderState() {
+	// if slider not progressed beyond first card
+	if (currentIndex == 0) {
+		list.setAttribute("es-progress", "start");
+	}
+	// if slider in progress but not at end
+	else if (currentIndex < cards.length - 1) {
+		list.setAttribute("es-progress", "incomplete");
+	}
+	// if slider at last card
+	else if (currentIndex == cards.length - 1) {
+		list.setAttribute("es-progress", "end");
+	}
+}
 
 // Open/close card animations and timeline setup
 function openCloseESCards() {
@@ -261,7 +277,7 @@ function generateBounds(expanded = false) {
 
 	if (expanded) {
 		// get the values in pixels of the collapsed and expanded widths
-		let collapsedWidth = getRemVarInPx(collapsedWidthVar);
+		collapsedWidth = getRemVarInPx(collapsedWidthVar);
 		expandedWidth = getExpandedWidth();
 
 		// if expanded, we need to account for the expanded width of 1 card, so just add on the difference to totalWidth
@@ -335,11 +351,13 @@ function makeSliderDraggable() {
 		inertia: true,
 		cursor: "grab",
 		activeCursor: "grabbing",
+		onDragEnd: () => onDragEnd(),
 	})[0];
 
 	// Apply correct initial bounds
 	applyBounds(drag, generateBounds());
 	console.log("Initial bounds:", drag.minX, drag.maxX);
+
 	return drag;
 }
 
@@ -347,7 +365,7 @@ function getCurrentIndex() {
 	const currentX = myDraggableInstance.x; // Get the current x position of the slider
 	let closestIndex = 0;
 	let closestDistance = Infinity;
-
+	console.log(snapPoints);
 	snapPoints.forEach((snapPoint, index) => {
 		const distance = Math.abs(currentX - snapPoint);
 		if (distance < closestDistance) {
@@ -367,11 +385,12 @@ btnPrev.addEventListener("click", () => {
 		reverse(openCard);
 	}
 	// get current index, bearing in mind we might be in between cards
-	//...
-	if (getCurrentIndex() > 0) {
+	getCurrentIndex();
+	if (currentIndex > 0) {
 		snapToIndex(currentIndex - 1);
-		console.log("Snapping to previous index:", currentIndex - 1);
+		console.log("Snapping to previous index:", currentIndex);
 	}
+	updateSliderState();
 });
 
 // handle next button click
@@ -381,11 +400,21 @@ btnNext.addEventListener("click", () => {
 		reverse(openCard);
 	}
 	// get current index, bearing in mind we might be in between cards
-	if (getCurrentIndex() < cards.length - 1) {
-		snapToIndex(currentIndex + 1);
-		console.log("Snapping to next index:", currentIndex + 1);
+	getCurrentIndex();
+	if (currentIndex < cards.length - 1) {
+		snapToIndex(currentIndex + 1); // NB snapToIndex also updates currentIndex
+		console.log("Snapping to next index:", currentIndex);
 	}
+	updateSliderState();
 });
+
+function onDragEnd() {
+	console.log("drag ended");
+	// update index
+	getCurrentIndex();
+	// update slider state
+	updateSliderState();
+}
 
 // On window resize, clear inline props and recalc bounds
 function onResize() {
@@ -422,6 +451,7 @@ function onResize() {
 	updateSliderBounds();
 	updateSnapPoints();
 	snapToIndex(currentIndex);
+	updateSliderState();
 }
 
 function setAllBgSizes() {
@@ -491,6 +521,8 @@ function init() {
 	window.addEventListener("resize", onResizeDebounced);
 	initialiseModals();
 	patchDetailBg();
+	updateSliderState();
+	getCurrentIndex();
 }
 
 init();
