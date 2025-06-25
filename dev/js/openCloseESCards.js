@@ -10,6 +10,7 @@
 
 //  ELEMENTS & STATE
 const list = document.querySelector(".es_list");
+const container = list.closest(".container");
 const cards = Array.from(list.querySelectorAll(".es-card"));
 const btnPrev = document.querySelector(".es_arrow.is-prev");
 const btnNext = document.querySelector(".es_arrow.is-next");
@@ -18,17 +19,17 @@ let currentIndex = 0;
 let snapPoints = [];
 let collapsedWidthVar = "--es--w-collapsed"; // CSS variable for collapsed width
 let expandedWidthVar = "--es--w-expanded"; // CSS variable for expanded width
-let expandedDetailWidthVar = "--es--detail-w-expanded";
-let containerWidthVar = "--container--width";
+let expandedDetailWidthVar = "--es--detail-w-expanded"; // CSS variable for expanded detail width
 const mm_value = "(max-width: 768px)"; // media query for mobile
-let isMobile = window.matchMedia(mm_value).matches;
-let calculatedExpandedWidth = null; // Store the computed width
+let maxWidth, containerWidth;
+let expandedWidth = getExpandedWidth();
+let isMobile = window.matchMedia(mm_value).matches; // also updated on resize
 
 const modals = Array.from(document.querySelectorAll(".es-modal"));
 const modalOpenDuration = 0.5; // duration for modal open/close animations
 let isAnyModalOpen = false; // state to check if a modal is open
 
-const cardTimelines = new Map(); // ← global
+const cardTimelines = new Map(); // timelines for each card
 
 // Open/close card animations and timeline setup
 function openCloseESCards() {
@@ -46,16 +47,14 @@ function openCloseESCards() {
 		tl.to(contentHidden, { height: () => contentHidden.scrollHeight + "px" }, "<");
 		tl.to(detail, { width: "var(" + expandedDetailWidthVar + ")", autoAlpha: 1 }, 0.1);
 
-		tl.to(card, { width: () => calculatedExpandedWidth + "px" }, 0.1);
+		tl.to(card, { width: () => getExpandedWidth() }, 0.1);
 		tl.to(icon, { rotate: "45deg" }, 0.2);
 
 		// snap card when timeline starts
 		tl.eventCallback("onStart", () => {
 			// if last card and card is not already expanded, recalculate bounds and snap to RH edge
 			if (idx === cards.length - 1 && card.classList.contains("is-open")) {
-				// console.log("Last card is not open, recalculating bounds and snapping to left edge");
 				updateSliderBounds(true); // recalc bounds with expanded width
-				// console.log("MinX:", myDraggableInstance.minX, "MaxX:", myDraggableInstance.maxX);
 				gsap.to(list, {
 					x: myDraggableInstance.minX, // snap to the left edge
 					duration: 0.5,
@@ -230,7 +229,6 @@ function crossfadeModal(fromIdx, toIdx) {
 	gsap
 		.timeline({
 			onComplete: () => {
-				// gsap.set(fill, { autoAlpha: 0 });
 				// reset z-index after animation
 				gsap.set(modal_new, { zIndex: 2000 });
 
@@ -263,14 +261,13 @@ function generateBounds(expanded = false) {
 
 	if (expanded) {
 		// get the values in pixels of the collapsed and expanded widths
-		let collapsedWidth = parseFloat(getCssVar(collapsedWidthVar)) * getRemInPixels();
-		let expandedWidth = parseFloat(getCssVar(expandedWidthVar)) * getRemInPixels();
+		let collapsedWidth = getRemVarInPx(collapsedWidthVar);
+		expandedWidth = getExpandedWidth();
 
 		// if expanded, we need to account for the expanded width of 1 card, so just add on the difference to totalWidth
 		totalWidth = totalWidth + (expandedWidth - collapsedWidth);
 	}
 
-	const container = list.closest(".container");
 	if (!container) {
 		return { minX: 0, maxX: 0 };
 	}
@@ -282,8 +279,6 @@ function generateBounds(expanded = false) {
 		maxX: 0,
 	};
 }
-
-// compute one snap-point per card: negative of its offsetLeft
 
 function updateSnapPoints() {
 	const { minX, maxX } = generateBounds();
@@ -397,6 +392,12 @@ function onResize() {
 	// check if mobile
 	isMobile = window.matchMedia(mm_value).matches;
 
+	// if not mobile, recalc expanded widths and update bg image sizes
+	if (!isMobile) {
+		expandedWidth = getExpandedWidth();
+		setAllBgSizes();
+	}
+
 	closeAllModals(); // close all modals on resize
 	updateBodyScrollIfModalOpen(); // update body scroll state
 
@@ -405,7 +406,9 @@ function onResize() {
 		clearProps: true,
 	});
 	// remove is-open class
-	cards.forEach((card) => card.classList.remove("is-open", "is-opening", "is-closing"));
+	cards.forEach((card) => {
+		card.classList.remove("is-open", "is-opening", "is-closing");
+	});
 
 	// force each timeline to recalc its “auto” values next time it plays
 	cardTimelines.forEach((tl) => {
@@ -415,30 +418,42 @@ function onResize() {
 		}
 	});
 
-	//update the expanded width based on the current viewport
-	calculateExpandedWidth();
-
 	// recalc bounds & snap back to the current index
 	updateSliderBounds();
 	updateSnapPoints();
 	snapToIndex(currentIndex);
 }
 
-function getRemInPixels() {
-	return parseFloat(getComputedStyle(document.documentElement).fontSize);
+function setAllBgSizes() {
+	cards.forEach((card) => {
+		// set all images to expandedWidth so they cover the expanded version
+		gsap.set(card.querySelector(".es-card_bg"), {
+			width: expandedWidth,
+		});
+	});
 }
 
-// function to return CSS variable value
-function getCssVar(varName) {
-	return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+function getRemVarInPx(varName) {
+	let el = document.documentElement;
+	let raw = getComputedStyle(el).getPropertyValue(varName).trim();
+	let value = raw ? parseFloat(raw) : 0; // parseFloat ignores the trailing "rem"
+	let remInPx = parseFloat(getComputedStyle(el).fontSize);
+	return value * remInPx;
 }
 
-function calculateExpandedWidth() {
-	const containerWidth = 0.9 * parseFloat(getCssVar(containerWidthVar)) * getRemInPixels();
-	const expandedWidth = parseFloat(getCssVar(expandedWidthVar)) * getRemInPixels();
-	const windowWidth = window.innerWidth;
-	calculatedExpandedWidth = Math.min(expandedWidth, containerWidth, windowWidth);
-	console.log("Calculated expanded width:", calculatedExpandedWidth);
+function getExpandedWidth() {
+	const maxWidth = getRemVarInPx(expandedWidthVar); // absolute max width a slide can be in px, based on CSS variable
+	const containerWidth = container.offsetWidth; // the component width
+	let expandedWidth = 0;
+	if (maxWidth) {
+		expandedWidth = Math.min(maxWidth, 0.9 * containerWidth); // calculate width of expanded card, limited to 90% of parent and CSS variable
+	} else {
+		expandedWidth = 0.9 * containerWidth; // fallback to 90%
+	}
+	// console log max width, container width and final calculated expanded width
+	console.log("getExpandedWidth:", { maxWidth, containerWidth, expandedWidth });
+
+	return expandedWidth;
 }
 
 function patchDetailBg() {
@@ -451,14 +466,29 @@ function patchDetailBg() {
 	});
 }
 
+function debounce(func, wait) {
+	let timeout;
+	return function (...args) {
+		const context = this;
+		clearTimeout(timeout);
+		timeout = setTimeout(() => {
+			func.apply(context, args);
+		}, wait);
+	};
+}
+
+const onResizeDebounced = debounce(() => {
+	onResize();
+}, 250);
+
 // INITIALIZATION
 function init() {
 	gsap.registerPlugin(Draggable);
-	calculateExpandedWidth();
 	openCloseESCards();
+	setAllBgSizes();
 	myDraggableInstance = makeSliderDraggable();
 	updateSnapPoints();
-	window.addEventListener("resize", onResize);
+	window.addEventListener("resize", onResizeDebounced);
 	initialiseModals();
 	patchDetailBg();
 }
