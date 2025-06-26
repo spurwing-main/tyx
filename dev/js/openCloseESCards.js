@@ -506,8 +506,6 @@ function onResize() {
 		}
 	});
 
-	cardTimelines.clear();
-
 	// recalc bounds & snap back to the current index
 	updateSliderBounds();
 	updateSnapPoints();
