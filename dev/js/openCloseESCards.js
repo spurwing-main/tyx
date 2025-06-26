@@ -1,19 +1,15 @@
-/* TODO
-
-[ ] progress bar
-[x] when card closes on resize, icon does not reset
-[x] mobile version
-[x] when opening final card, should snap to right edge
-
-
-*/
-
 //  ELEMENTS & STATE
+let es = {};
+
+const logging = false;
+
 const list = document.querySelector(".es_list");
 const container = list.closest(".container");
 const cards = Array.from(list.querySelectorAll(".es-card"));
 const btnPrev = document.querySelector(".es_arrow.is-prev");
 const btnNext = document.querySelector(".es_arrow.is-next");
+const progressBar = document.querySelector(".es_progress-bar");
+const gap = 32;
 let myDraggableInstance;
 let currentIndex = 0;
 let snapPoints = [];
@@ -25,6 +21,8 @@ let maxWidth, containerWidth;
 let expandedWidth = getExpandedWidth();
 let collapsedWidth = getRemVarInPx(collapsedWidthVar);
 let isMobile = window.matchMedia(mm_value).matches; // also updated on resize
+let progress = 0,
+	progressBarTL = initProgressBar();
 
 const modals = Array.from(document.querySelectorAll(".es-modal"));
 const modalOpenDuration = 0.5; // duration for modal open/close animations
@@ -45,6 +43,35 @@ function updateSliderState() {
 	else if (currentIndex == cards.length - 1) {
 		list.setAttribute("es-progress", "end");
 	}
+}
+
+function updateProgressBar() {
+	// update progress 0-1 from GSAP Draggable
+	progress = myDraggableInstance.x / myDraggableInstance.minX;
+
+	// round progress to 0 or 1 if we are very close
+	if (Math.abs(progress) < 0.01) {
+		progress = 0;
+	} else if (Math.abs(progress - 1) < 0.01) {
+		progress = 1;
+	}
+
+	// update where we are in the progress bar's animation. Slight duration lets us smooth out any jumps when cards open/close
+	gsap.to(progressBarTL, {
+		progress: progress,
+		duration: 0.05,
+		ease: "none",
+	});
+}
+
+function initProgressBar() {
+	const tl = gsap
+		.timeline({
+			paused: true,
+		})
+		.from(progressBar, { scaleX: 0, ease: "none", duration: 2 });
+	gsap.set(progressBar, { transformOrigin: "0% 50%" });
+	return tl;
 }
 
 // Open/close card animations and timeline setup
@@ -68,7 +95,7 @@ function openCloseESCards() {
 
 		// snap card when timeline starts
 		tl.eventCallback("onStart", () => {
-			// if last card and card is not already expanded, recalculate bounds and snap to RH edge
+			// if we are on last card and this card is not already expanded, recalculate bounds and snap to RH edge
 			if (idx === cards.length - 1 && card.classList.contains("is-open")) {
 				updateSliderBounds(true); // recalc bounds with expanded width
 				gsap.to(list, {
@@ -87,11 +114,13 @@ function openCloseESCards() {
 		// when expansion finishes → recalc bounds & snap this card to left edge
 		tl.eventCallback("onComplete", () => {
 			updateSliderBounds();
-
+			// updateProgressBar();
 			card.classList.remove("is-opening", "is-closing");
 		});
 		tl.eventCallback("onReverseComplete", () => {
 			updateSliderBounds();
+			// updateProgressBar();
+
 			card.classList.remove("is-opening", "is-closing");
 		});
 
@@ -231,7 +260,6 @@ function crossfadeModal(fromIdx, toIdx) {
 	const modal_old = modals[fromIdx];
 	const modal_new = modals[toIdx];
 
-	// const fill = document.querySelector(".es_modals-bg-fill");
 	// mark states
 	modal_new.classList.add("is-open");
 	modal_old.classList.remove("is-open");
@@ -239,8 +267,6 @@ function crossfadeModal(fromIdx, toIdx) {
 	// adjust z indexes to ensure the incoming modal is on top
 	gsap.set(modal_new, { zIndex: 2001 });
 	gsap.set(modal_old, { zIndex: 2000 });
-
-	// gsap.set(fill, { autoAlpha: 1 }); // we use a bg fill to ensure page bg is never visible
 
 	gsap
 		.timeline({
@@ -270,7 +296,6 @@ function closeAllModals() {
 
 // Generate draggable bounds based on total cards width
 function generateBounds(expanded = false) {
-	const gap = 32;
 	let totalWidth = Array.from(cards).reduce((sum, card, idx) => {
 		return sum + card.offsetWidth + (idx < cards.length - 1 ? gap : 0);
 	}, 0);
@@ -313,11 +338,13 @@ function updateSnapPoints() {
 // re-apply Draggable bounds
 function updateSliderBounds(expanded = false) {
 	const bounds = generateBounds(expanded);
-	console.log("Updating bounds:", bounds);
+	if (logging) {
+		console.log("Updating bounds:", bounds);
+	}
 	applyBounds(myDraggableInstance, bounds);
 }
 
-// helper to apply to an instance
+// update drag instance with new bounds
 function applyBounds(drag, { minX, maxX }) {
 	if (!drag) return;
 	drag.applyBounds({ minX, maxX });
@@ -336,11 +363,14 @@ function snapToIndex(idx) {
 		ease: "power2.inOut",
 		onUpdate: () => {
 			myDraggableInstance.update();
+			updateProgressBar();
 		},
 	});
 	currentIndex = idx;
 
-	console.log("Snapping to index:", target);
+	if (logging) {
+		console.log("Snapping to index:", target);
+	}
 }
 
 // Initialize the GSAP Draggable slider
@@ -351,21 +381,40 @@ function makeSliderDraggable() {
 		inertia: true,
 		cursor: "grab",
 		activeCursor: "grabbing",
-		onDragEnd: () => onDragEnd(),
+		onDrag: dragUpdateHandler,
+		onThrowUpdate: dragUpdateHandler,
+		onDragEnd: dragEndHandler,
+		onThrowComplete: dragEndHandler,
 	})[0];
 
 	// Apply correct initial bounds
 	applyBounds(drag, generateBounds());
-	console.log("Initial bounds:", drag.minX, drag.maxX);
-
+	if (logging) {
+		console.log("Initial bounds:", drag.minX, drag.maxX);
+	}
 	return drag;
+}
+
+function dragUpdateHandler() {
+	updateProgressBar();
+}
+
+function dragEndHandler() {
+	// update index
+	getCurrentIndex();
+	// update slider state
+	updateSliderState();
+	// update progress bar
+	updateProgressBar();
 }
 
 function getCurrentIndex() {
 	const currentX = myDraggableInstance.x; // Get the current x position of the slider
 	let closestIndex = 0;
 	let closestDistance = Infinity;
-	console.log(snapPoints);
+	if (logging) {
+		console.log(snapPoints);
+	}
 	snapPoints.forEach((snapPoint, index) => {
 		const distance = Math.abs(currentX - snapPoint);
 		if (distance < closestDistance) {
@@ -373,7 +422,9 @@ function getCurrentIndex() {
 			closestIndex = index;
 		}
 	});
-	console.log("Current X:", currentX, "Closest index:", closestIndex);
+	if (logging) {
+		console.log("Current X:", currentX, "Closest index:", closestIndex);
+	}
 	currentIndex = closestIndex; // Update the global currentIndex
 	return closestIndex;
 }
@@ -388,7 +439,9 @@ btnPrev.addEventListener("click", () => {
 	getCurrentIndex();
 	if (currentIndex > 0) {
 		snapToIndex(currentIndex - 1);
-		console.log("Snapping to previous index:", currentIndex);
+		if (logging) {
+			console.log("Snapping to previous index:", currentIndex);
+		}
 	}
 	updateSliderState();
 });
@@ -403,18 +456,12 @@ btnNext.addEventListener("click", () => {
 	getCurrentIndex();
 	if (currentIndex < cards.length - 1) {
 		snapToIndex(currentIndex + 1); // NB snapToIndex also updates currentIndex
-		console.log("Snapping to next index:", currentIndex);
+		if (logging) {
+			console.log("Snapping to next index:", currentIndex);
+		}
 	}
 	updateSliderState();
 });
-
-function onDragEnd() {
-	console.log("drag ended");
-	// update index
-	getCurrentIndex();
-	// update slider state
-	updateSliderState();
-}
 
 // On window resize, clear inline props and recalc bounds
 function onResize() {
@@ -452,6 +499,7 @@ function onResize() {
 	updateSnapPoints();
 	snapToIndex(currentIndex);
 	updateSliderState();
+	updateProgressBar();
 }
 
 function setAllBgSizes() {
@@ -481,7 +529,9 @@ function getExpandedWidth() {
 		expandedWidth = 0.9 * containerWidth; // fallback to 90%
 	}
 	// console log max width, container width and final calculated expanded width
-	console.log("getExpandedWidth:", { maxWidth, containerWidth, expandedWidth });
+	if (logging) {
+		console.log("getExpandedWidth:", { maxWidth, containerWidth, expandedWidth });
+	}
 
 	return expandedWidth;
 }
@@ -523,6 +573,7 @@ function init() {
 	patchDetailBg();
 	updateSliderState();
 	getCurrentIndex();
+	updateProgressBar();
 }
 
 init();
