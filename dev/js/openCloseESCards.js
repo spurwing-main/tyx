@@ -22,7 +22,8 @@ let expandedWidth = getExpandedWidth();
 let collapsedWidth = getRemVarInPx(collapsedWidthVar);
 let isMobile = window.matchMedia(mm_value).matches; // also updated on resize
 let progress = 0,
-	progressBarTL = initProgressBar();
+	progressBarTL = initProgressBarTL(),
+	progressSetter = progressBarQuickSet();
 
 const modals = Array.from(document.querySelectorAll(".es-modal"));
 const modalOpenDuration = 0.5; // duration for modal open/close animations
@@ -46,7 +47,7 @@ function updateSliderState() {
 }
 
 function updateProgressBar() {
-	// update progress 0-1 from GSAP Draggable
+	// update progress from GSAP Draggable
 	progress = myDraggableInstance.x / myDraggableInstance.minX;
 
 	// round progress to 0 or 1 if we are very close
@@ -57,14 +58,10 @@ function updateProgressBar() {
 	}
 
 	// update where we are in the progress bar's animation. Slight duration lets us smooth out any jumps when cards open/close
-	gsap.to(progressBarTL, {
-		progress: progress,
-		duration: 0.05,
-		ease: "none",
-	});
+	progressSetter(progress);
 }
 
-function initProgressBar() {
+function initProgressBarTL() {
 	const tl = gsap
 		.timeline({
 			paused: true,
@@ -72,6 +69,19 @@ function initProgressBar() {
 		.from(progressBar, { scaleX: 0, ease: "none", duration: 2 });
 	gsap.set(progressBar, { transformOrigin: "0% 50%" });
 	return tl;
+}
+
+function progressBarQuickSet() {
+	// create a quickTo for ease
+	const setter = gsap.utils.pipe(
+		gsap.utils.clamp(0, 1), //make sure the number is between 0 and 1
+		gsap.utils.snap(0.01), //snap to the closest increment of 0.01
+		gsap.quickTo(progressBarTL, "progress", {
+			duration: 0.05,
+			ease: "none",
+		})
+	);
+	return setter;
 }
 
 // Open/close card animations and timeline setup
@@ -364,6 +374,7 @@ function snapToIndex(idx) {
 		ease: "power2.inOut",
 		onUpdate: () => {
 			myDraggableInstance.update();
+
 			updateProgressBar();
 		},
 	});
@@ -494,6 +505,8 @@ function onResize() {
 			tl.pause(0).kill(true);
 		}
 	});
+
+	cardTimelines.clear();
 
 	// recalc bounds & snap back to the current index
 	updateSliderBounds();
