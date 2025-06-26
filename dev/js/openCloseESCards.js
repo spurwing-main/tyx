@@ -1,7 +1,7 @@
 //  ELEMENTS & STATE
 let es = {};
 
-const logging = false;
+const logging = true;
 
 const list = document.querySelector(".es_list");
 const container = list.closest(".container");
@@ -36,11 +36,11 @@ function updateSliderState() {
 		list.setAttribute("es-progress", "start");
 	}
 	// if slider in progress but not at end
-	else if (currentIndex < cards.length - 1) {
+	else if (currentIndex < snapPoints.length - 1) {
 		list.setAttribute("es-progress", "incomplete");
 	}
 	// if slider at last card
-	else if (currentIndex == cards.length - 1) {
+	else if (currentIndex == snapPoints.length - 1) {
 		list.setAttribute("es-progress", "end");
 	}
 }
@@ -114,12 +114,10 @@ function openCloseESCards() {
 		// when expansion finishes → recalc bounds & snap this card to left edge
 		tl.eventCallback("onComplete", () => {
 			updateSliderBounds();
-			// updateProgressBar();
 			card.classList.remove("is-opening", "is-closing");
 		});
 		tl.eventCallback("onReverseComplete", () => {
 			updateSliderBounds();
-			// updateProgressBar();
 
 			card.classList.remove("is-opening", "is-closing");
 		});
@@ -323,9 +321,9 @@ function generateBounds(expanded = false) {
 
 function updateSnapPoints() {
 	const { minX, maxX } = generateBounds();
-	snapPoints = cards.map((card, i) => {
+	const points = cards.map((card, i) => {
 		// natural snap = align this card’s left edge
-		let pt = -card.offsetLeft;
+		let pt = Math.round(-card.offsetLeft);
 		// last card → force flush‐right
 		if (i === cards.length - 1) {
 			pt = minX;
@@ -333,6 +331,9 @@ function updateSnapPoints() {
 		// clamp into [minX…maxX] so it never lies outside
 		return Math.min(Math.max(pt, minX), maxX);
 	});
+
+	// remove duplicates
+	snapPoints = points.filter((pt, idx) => points.indexOf(pt) === idx);
 }
 
 // re-apply Draggable bounds
@@ -454,7 +455,7 @@ btnNext.addEventListener("click", () => {
 	}
 	// get current index, bearing in mind we might be in between cards
 	getCurrentIndex();
-	if (currentIndex < cards.length - 1) {
+	if (currentIndex < snapPoints.length - 1) {
 		snapToIndex(currentIndex + 1); // NB snapToIndex also updates currentIndex
 		if (logging) {
 			console.log("Snapping to next index:", currentIndex);
