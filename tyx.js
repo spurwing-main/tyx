@@ -1720,19 +1720,6 @@ function main() {
 					nav.classList.remove("is-past-threshold");
 				}
 
-				// on mobile close subnav accordion
-				// if (currentScrollY < 10 && linksOpen) {
-				// 	if (subnav) {
-				// 		gsap.set(subnav, { height: "var(--sub-nav-h)" });
-				// 		linksOpen = false;
-				// 		subnavOpen = false;
-				// 		nav.classList.remove("is-hidden");
-				// 	}
-				// 	if (subBtn_arrow) {
-				// 		gsap.set(subBtn_arrow, { rotateX: 0 });
-				// 	}
-				// }
-
 				lastScrollY = currentScrollY; // Update last scroll position
 			},
 		});
@@ -1927,8 +1914,26 @@ function main() {
 			let open = false;
 			const accordions = [];
 
-			gsap.set(icons[0], { autoAlpha: 0 });
+			gsap.set(btn, { autoAlpha: 1 });
+			gsap.set(icons[0], { autoAlpha: 1 });
 			gsap.set(drawer, { height: 0, autoAlpha: 0 });
+
+			const closeAllAccordions = () => {
+				nav.querySelectorAll("[data-toggle]").forEach((toggle) => {
+					const key = toggle.dataset.toggle;
+					const pane = nav.querySelector(`[data-details="${key}"]`);
+					toggle.classList.remove("is-open");
+					toggle.querySelector(".nav_content-link-toggle")?.classList.remove("is-open");
+					if (pane) {
+						gsap.to(pane, {
+							height: 0,
+							autoAlpha: 0,
+							duration: 0.3,
+							ease: "power2.in",
+						});
+					}
+				});
+			};
 
 			const onBtn = () => {
 				open = !open;
@@ -1952,6 +1957,9 @@ function main() {
 							display: open ? "block" : "none",
 							duration: open ? 0.4 : 0.3,
 							ease: open ? "power2.out" : "power2.in",
+							onComplete: () => {
+								if (!open) closeAllAccordions(); // Close all accordions when nav closes
+							},
 						},
 						0
 					);
@@ -1991,6 +1999,9 @@ function main() {
 				nav.classList.remove("is-open");
 				document.body.classList.remove("no-scroll"); // Ensure no-scroll is removed on cleanup
 				nav.style.removeProperty("height");
+				closeAllAccordions(); // Also close all accordions on cleanup
+				// Reset hamburger icon visibility for desktop
+				gsap.set(btn, { clearProps: "autoAlpha" });
 			};
 		});
 	};
