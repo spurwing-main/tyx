@@ -1652,6 +1652,12 @@ function main() {
 		const subnav = document.querySelector(".c-subnav");
 		const subBtn = document.querySelector(".subnav_mob-btn");
 		const subLinks = document.querySelector(".subnav_links");
+		let subBtn_arrow;
+		if (subBtn) {
+			subBtn_arrow = subBtn.querySelector("svg");
+		}
+
+		let linksOpen = false;
 
 		if (!nav) {
 			console.error("❌ .nav element not found");
@@ -1714,6 +1720,19 @@ function main() {
 					nav.classList.remove("is-past-threshold");
 				}
 
+				// on mobile close subnav accordion
+				// if (currentScrollY < 10 && linksOpen) {
+				// 	if (subnav) {
+				// 		gsap.set(subnav, { height: "var(--sub-nav-h)" });
+				// 		linksOpen = false;
+				// 		subnavOpen = false;
+				// 		nav.classList.remove("is-hidden");
+				// 	}
+				// 	if (subBtn_arrow) {
+				// 		gsap.set(subBtn_arrow, { rotateX: 0 });
+				// 	}
+				// }
+
 				lastScrollY = currentScrollY; // Update last scroll position
 			},
 		});
@@ -1738,13 +1757,18 @@ function main() {
 					log("subnav → close");
 					subnav.classList.remove("is-open");
 					subnavVisible = false;
+					gsap.set(subnav, { height: "var(--sub-nav-h)" });
+					linksOpen = false;
+					subnavOpen = false;
+					if (subBtn_arrow) {
+						gsap.set(subBtn_arrow, { rotateX: 0 });
+					}
 					/* main nav visibility now handled by its own trigger */
 				},
 			});
 		}
 		/* ───── sub-nav accordion: animate ONLY .c-subnav height ───── */
 		if (subBtn && subLinks && subnav) {
-			let linksOpen = false;
 			const closeSubLinks = () => {
 				if (!linksOpen) return;
 				gsap.killTweensOf(subnav);
@@ -1797,7 +1821,7 @@ function main() {
 				}
 
 				// Arrow animation
-				gsap.to(subBtn.querySelector("svg"), {
+				gsap.to(subBtn_arrow, {
 					rotateX: !linksOpen ? 180 : 0,
 					transformOrigin: "center center",
 					duration: 0.25,
