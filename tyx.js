@@ -550,6 +550,26 @@ function main() {
 					},
 				},
 			});
+
+			// Intersection Observer to control autoplay
+			if ("IntersectionObserver" in window && swiper.autoplay) {
+				const observer = new IntersectionObserver(
+					(entries) => {
+						entries.forEach((entry) => {
+							if (entry.isIntersecting) {
+								swiper.autoplay.start();
+							} else {
+								swiper.autoplay.stop();
+							}
+						});
+					},
+					{
+						root: null,
+						threshold: 0.2, // Adjust as needed (20% visible triggers autoplay)
+					}
+				);
+				observer.observe(component);
+			}
 		});
 	};
 
@@ -910,6 +930,14 @@ function main() {
 				speed: 1,
 				pauseOnHover: false,
 			},
+			intersection: {
+				inView: {
+					autoScroll: true,
+				},
+				outView: {
+					autoScroll: false,
+				},
+			},
 			clones: 5,
 			arrows: false,
 			trimSpace: "move",
@@ -928,6 +956,14 @@ function main() {
 		var splide = new Splide(".s-testimonials .splide", {
 			type: "loop",
 			autoplay: false,
+			intersection: {
+				inView: {
+					autoScroll: true,
+				},
+				outView: {
+					autoScroll: false,
+				},
+			},
 			autoScroll: {
 				speed: 1,
 				pauseOnHover: false,
