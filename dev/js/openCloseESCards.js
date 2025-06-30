@@ -343,7 +343,8 @@ function updateSnapPoints() {
 	});
 
 	// remove duplicates
-	snapPoints = points.filter((pt, idx) => points.indexOf(pt) === idx);
+	// snapPoints = points.filter((pt, idx) => points.indexOf(pt) === idx);
+	snapPoints = points;
 }
 
 // re-apply Draggable bounds
@@ -363,7 +364,13 @@ function applyBounds(drag, { minX, maxX }) {
 
 // animate the list to the given card index
 function snapToIndex(idx) {
-	let target = snapPoints[idx];
+	// as the last two or three cards have the same snap points and we have already deduped snapPoints, we need to grab the last snapPoint if idx is beyond arr length
+	let target;
+	if (idx >= 0 && idx < snapPoints.length) {
+		target = snapPoints[idx];
+	} else {
+		target = snapPoints[snapPoints.length - 1];
+	}
 	// clamp to bounds
 	const b = generateBounds();
 	target = Math.max(Math.min(target, b.maxX), b.minX);
