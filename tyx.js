@@ -187,6 +187,7 @@ function main() {
 			const keep = [];
 
 			originals.forEach((src) => {
+				console.log(src.dataset.srcMbl);
 				// pick the correct raw URL
 				const raw =
 					mobile && src.dataset.srcMbl
@@ -194,11 +195,15 @@ function main() {
 						: src.dataset.src || src.getAttribute("src");
 				if (!raw) return;
 
+				// console.log(raw);
+
 				const tr = buildTransforms(
 					raw,
 					src.getAttribute("data-width"),
 					src.getAttribute("data-quality")
 				);
+
+				// console.log(tr);
 
 				if (tr) {
 					// Cloudinary → optimized
@@ -211,8 +216,8 @@ function main() {
 					setType(src);
 				}
 
-				src.removeAttribute("data-src");
-				src.removeAttribute("data-src-mbl");
+				// src.removeAttribute("data-src");
+				// src.removeAttribute("data-src-mbl");
 				keep.push(src);
 			});
 
@@ -273,6 +278,7 @@ function main() {
 			resizeRAF = requestAnimationFrame(() => {
 				const nowMobile = window.innerWidth <= 767;
 				if (nowMobile !== prevIsMobile) {
+					console.log("swapping");
 					prevIsMobile = nowMobile;
 					vids.forEach((v) => swapSources(v, nowMobile));
 				}
