@@ -187,7 +187,6 @@ function main() {
 			const keep = [];
 
 			originals.forEach((src) => {
-				console.log(src.dataset.srcMbl);
 				// pick the correct raw URL
 				const raw =
 					mobile && src.dataset.srcMbl
@@ -195,15 +194,11 @@ function main() {
 						: src.dataset.src || src.getAttribute("src");
 				if (!raw) return;
 
-				// console.log(raw);
-
 				const tr = buildTransforms(
 					raw,
 					src.getAttribute("data-width"),
 					src.getAttribute("data-quality")
 				);
-
-				// console.log(tr);
 
 				if (tr) {
 					// Cloudinary → optimized
@@ -242,6 +237,10 @@ function main() {
 			if (v.dataset._tyxInit) return;
 			v.dataset._tyxInit = "1";
 
+			// detect if this video has any <source data-src-mbl>
+			const hasMbl = [...v.querySelectorAll("source")].some((s) => !!s.dataset.srcMbl);
+			v.dataset.hasMobile = hasMbl ? "1" : "0";
+
 			// reset any <video src=> attr; we'll use <source> tags
 			v.removeAttribute("src");
 			v.preload = "none";
@@ -278,9 +277,13 @@ function main() {
 			resizeRAF = requestAnimationFrame(() => {
 				const nowMobile = window.innerWidth <= 767;
 				if (nowMobile !== prevIsMobile) {
-					console.log("swapping");
 					prevIsMobile = nowMobile;
-					vids.forEach((v) => swapSources(v, nowMobile));
+					// only re-swap sources on videos that actually have mobile versions
+					vids.forEach((v) => {
+						if (v.dataset.hasMobile === "1") {
+							swapSources(v, nowMobile);
+						}
+					});
 				}
 			});
 		});
@@ -621,7 +624,6 @@ function main() {
 
 				let containerSelector = gsap.utils.selector(container);
 				let bgs = containerSelector(".benefit-card_bg");
-				console.log(bgs);
 
 				// let dist = distance(); // store the distance so it's available for both animations
 
@@ -1669,7 +1671,7 @@ function main() {
 
 	tyx.functions.nav = function () {
 		/* ───────────────────────── CONFIG ───────────────────────── */
-		const DEBUG = true; // 🔧 set true to see logs
+		const DEBUG = false; // 🔧 set true to see logs
 		const log = (...a) => DEBUG && console.log("[tyx.nav]", ...a);
 
 		// gsap.registerPlugin(ScrollTrigger);
