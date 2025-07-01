@@ -113,7 +113,7 @@ function main() {
 	};
 
 	tyx.functions.handleVideos = () => {
-		/* ——————————————————————————————————————————————————————— constants */
+		/* ——————————————————————————————————————————————————————— constants ——————————————————————————————————————————————————————— */
 		const DEF_WIDTH = 1280; // px, when data-width missing/invalid
 		const DEF_QUALITY = "good"; // Cloudinary q_auto:eco default
 		const PLAY_T = 0.5; // viewport threshold to play
@@ -121,11 +121,31 @@ function main() {
 		// Detect iOS Safari (to avoid using WebM, which is unsupported)
 		const isIOSSafari = /iP(ad|hone|od).+Version\/[\d.]+.*Safari/i.test(navigator.userAgent);
 
-		/* ———————————————————————————————————————————————— helpers (scoped) */
+		/* ——————————————————————————————————————————————— browser capability ——————————————————————————————————————————————— */
+		const canWebM = !!document.createElement("video").canPlayType('video/webm; codecs="vp9"');
+		const useLazy =
+			(typeof tyx.lazyLoadVideos === "undefined" ? true : tyx.lazyLoadVideos) &&
+			"IntersectionObserver" in window;
+
+		const loadObs = useLazy
+			? new IntersectionObserver(onLoad, { rootMargin: "0px 0px 200px 0px" })
+			: null;
+		const playObs = useLazy ? new IntersectionObserver(onPlay, { threshold: PLAY_T }) : null;
+
+		/* ———————————————————————————————————————————————— helpers ——————————————————————————————————————————————————————— */
 		const cleanCloudURL = (u = "") =>
 			u.split("?")[0].replace(/\/upload\/(?:[^/]+\/)*v(\d+)\//, "/upload/v$1/");
 
-		const buildTransforms = (url, w, q) => {
+		const normaliseQuality = (q) => {
+			if (!q) return `q_auto:${DEF_QUALITY}`;
+			if (/^\d+$/.test(q)) return `q_${q}`; // explicit number
+			if (/^(eco|good|best|low)$/i.test(q))
+				// named presets
+				return `q_auto:${q.toLowerCase()}`;
+			return `q_auto:${DEF_QUALITY}`; // fallback
+		};
+
+		const buildTransforms = (url = "", w, q) => {
 			const m = cleanCloudURL(url).match(
 				/^(https:\/\/[^\/]+\/[^\/]+)\/video\/upload\/v(\d+)\/(.+)$/
 			);
@@ -143,58 +163,36 @@ function main() {
 			};
 		};
 
-		const normaliseQuality = (q) => {
-			if (!q) return `q_auto:${DEF_QUALITY}`;
-			if (/^\d+$/.test(q)) return `q_${q}`; // explicit number
-			if (/^(eco|good|best|low)$/i.test(q)) return `q_auto:${q.toLowerCase()}`;
-			return `q_auto:${DEF_QUALITY}`; // fallback
+		const setType = (sourceEl) => {
+			const want = /\.mp4$/i.test(sourceEl.src) ? "video/mp4" : "video/webm";
+			if (sourceEl.type !== want) sourceEl.setAttribute("type", want);
 		};
 
-		const setType = (s) => {
-			const want = /\.mp4$/i.test(s.src) ? "video/mp4" : "video/webm";
-			if (s.type !== want) s.setAttribute("type", want);
-		};
-
-		const hoverTriggers = (video) => {
-			const parent = video.closest("[play-on-hover-parent]");
+		const hoverTriggers = (videoEl) => {
+			const parent = videoEl.closest("[play-on-hover-parent]");
 			if (parent) {
 				return [
 					parent,
 					...[...parent.querySelectorAll("[play-on-hover-sibling]")].filter(
-						(n) => !n.contains(video)
+						(n) => !n.contains(videoEl)
 					),
 				];
 			}
-			return video.getAttribute("play-on-hover") === "hover" ? [video] : [];
+			return videoEl.getAttribute("play-on-hover") === "hover" ? [videoEl] : [];
 		};
 
-		/* ———————————————————————————————————————————————— early exit */
-		const vids = [...document.querySelectorAll("video")];
-		if (!vids.length) return;
-
-		/* ————————————————————————————————————————————— browser capability */
-		const canWebM = !!document.createElement("video").canPlayType('video/webm; codecs="vp9"');
-		const useLazy =
-			(typeof tyx.lazyLoadVideos === "undefined" ? true : tyx.lazyLoadVideos) &&
-			"IntersectionObserver" in window;
-
-		const loadObs = useLazy
-			? new IntersectionObserver(onLoad, { rootMargin: "0px 0px 200px 0px" })
-			: null;
-		const playObs = useLazy ? new IntersectionObserver(onPlay, { threshold: PLAY_T }) : null;
-
-		/* —————————————————————————————————————————— initialise each <video> */
-		vids.forEach((v) => {
-			// Prevent double-initialization (idempotency)
-			if (v.dataset._tyxInit) return;
-			v.dataset._tyxInit = "1";
-
-			const originals = [...v.querySelectorAll("source")];
+		/* ————————————————————————————————————————— swapSources (mobile vs desktop) ————————————————————————————————————————— */
+		function swapSources(videoEl, mobile) {
+			const originals = [...videoEl.querySelectorAll("source")];
 			const keep = [];
 
 			originals.forEach((src) => {
-				const raw = src.dataset.src || src.getAttribute("src");
-				if (!raw) return; // empty <source>
+				// pick the correct raw URL
+				const raw =
+					mobile && src.dataset.srcMbl
+						? src.dataset.srcMbl
+						: src.dataset.src || src.getAttribute("src");
+				if (!raw) return;
 
 				const tr = buildTransforms(
 					raw,
@@ -203,70 +201,95 @@ function main() {
 				);
 
 				if (tr) {
-					/* Cloudinary ➜ swap in optimised rendition */
-					// Only use WebM if supported and not iOS Safari
-					if (!isIOSSafari && canWebM) {
-						src.src = tr.webm;
-					} else {
-						src.src = tr.mp4;
-					}
+					// Cloudinary → optimized
+					src.src = !isIOSSafari && canWebM ? tr.webm : tr.mp4;
 					setType(src);
-					src.removeAttribute("data-src");
-					v.poster = tr.poster;
-					keep.push(src);
+					videoEl.poster = tr.poster;
 				} else {
-					/* External ➜ leave untouched except ensure src/type */
-					src.src = raw; // copy data-src → src if needed
+					// External → leave as-is
+					src.src = raw;
 					setType(src);
-					src.removeAttribute("data-src");
-					keep.push(src);
 				}
+
+				src.removeAttribute("data-src");
+				src.removeAttribute("data-src-mbl");
+				keep.push(src);
 			});
 
-			/* prune leftover Cloudinary masters */
+			// remove any leftover masters
 			originals
-				.filter((s) => /\/video\/upload\//.test(s.src || s.dataset.src || "") && !keep.includes(s))
+				.filter((s) => /\/video\/upload\//.test(s.src || "") && !keep.includes(s))
 				.forEach((n) => n.remove());
 
-			if (!keep.length) return; // nothing playable
+			// if already loaded once, reload with new sources
+			if (videoEl.dataset._tyxLoaded) {
+				videoEl.load();
+			}
+		}
 
-			/* global video attributes */
+		/* ————————————————————————————————————————————— initialization ————————————————————————————————————————————— */
+		const vids = [...document.querySelectorAll("video")];
+		if (!vids.length) return;
+
+		let prevIsMobile = window.innerWidth <= 767;
+
+		vids.forEach((v) => {
+			if (v.dataset._tyxInit) return;
+			v.dataset._tyxInit = "1";
+
+			// reset any <video src=> attr; we'll use <source> tags
 			v.removeAttribute("src");
 			v.preload = "none";
-			v.muted = true; // autoplay safety
+			v.muted = true;
 
-			const hEls = hoverTriggers(v);
-			const hOnly = hEls.length > 0;
+			// initial swap
+			swapSources(v, prevIsMobile);
 
-			// Only call .load() ONCE per video, after all sources are set
+			// setup loading/playback
 			if (!useLazy) {
 				if (!v.dataset._tyxLoaded) {
 					v.dataset._tyxLoaded = "1";
 					v.load();
 					v.dataset.loaded = "1";
 				}
-				if (!hOnly) playOnScroll(v);
+				if (!hoverTriggers(v).length) {
+					playOnScroll(v);
+				}
 			} else {
 				loadObs.observe(v);
-				if (hOnly) hookHover(v, hEls);
+				const hEls = hoverTriggers(v);
+				if (hEls.length) {
+					hookHover(v, hEls);
+				} else {
+					playObs.observe(v);
+				}
 			}
 		});
 
-		/* ————————————————————————————————————————————— observers */
+		/* ————————————————————————————————————————————— resize handler ————————————————————————————————————————————— */
+		let resizeRAF = null;
+		window.addEventListener("resize", () => {
+			if (resizeRAF) cancelAnimationFrame(resizeRAF);
+			resizeRAF = requestAnimationFrame(() => {
+				const nowMobile = window.innerWidth <= 767;
+				if (nowMobile !== prevIsMobile) {
+					prevIsMobile = nowMobile;
+					vids.forEach((v) => swapSources(v, nowMobile));
+				}
+			});
+		});
+
+		/* ————————————————————————————————————————————— observers & handlers ————————————————————————————————————————————— */
 		function onLoad(entries, obs) {
 			entries.forEach(({ isIntersecting, target }) => {
-				// Defensive: Only load if not already loaded or loading
-				if (!isIntersecting || target.dataset.loaded === "1" || target.dataset._tyxLoaded === "1")
-					return;
-				target.dataset._tyxLoaded = "1"; // mark as loaded before calling .load()
+				if (!isIntersecting || target.dataset._tyxLoaded === "1") return;
+				target.dataset._tyxLoaded = "1";
 				target.load();
 				target.dataset.loaded = "1";
-				console.log("[tyx] Video loaded:", target); // ← log when loaded
-
 				obs.unobserve(target);
-				if (!target.autoplay)
-					target.addEventListener("loadeddata", () => target.pause(), { once: true });
-				if (!hoverTriggers(target).length) playObs.observe(target);
+				if (!hoverTriggers(target).length) {
+					playObs.observe(target);
+				}
 			});
 		}
 
@@ -277,14 +300,12 @@ function main() {
 			});
 		}
 
-		/* ——————————————————————————————————————————— hover handling */
 		function hookHover(v, els) {
 			let playing = false;
 			v.addEventListener("playing", () => (playing = true));
 			v.addEventListener("pause", () => (playing = false));
 			els.forEach((el) => {
 				el.addEventListener("mouseenter", () => {
-					// Defensive: Only load if not already loaded or loading
 					if (v.dataset._tyxLoaded !== "1") {
 						v.dataset._tyxLoaded = "1";
 						v.load();
@@ -298,7 +319,6 @@ function main() {
 			});
 		}
 
-		/* ——————————————————————————————————————————— scroll handling */
 		function playOnScroll(v) {
 			let raf = null;
 			const evaluate = () => {
