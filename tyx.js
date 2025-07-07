@@ -3111,45 +3111,49 @@ function main() {
 
 		init();
 
-		// --- DEBUG MODAL ---
-		const debugModal = document.createElement("div");
-		debugModal.style.position = "fixed";
-		debugModal.style.bottom = "16px";
-		debugModal.style.right = "16px";
-		debugModal.style.background = "rgba(30,30,40,0.95)";
-		debugModal.style.color = "#fff";
-		debugModal.style.font = "12px/1.5 monospace";
-		debugModal.style.padding = "12px 16px";
-		debugModal.style.borderRadius = "8px";
-		debugModal.style.zIndex = "9999";
-		debugModal.style.pointerEvents = "none";
-		debugModal.style.opacity = 0.5;
-		debugModal.style.width = "640px";
-		debugModal.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-		debugModal.style.whiteSpace = "pre";
-		debugModal.innerText = "Debug info";
-		document.body.appendChild(debugModal);
+		function debugModal() {
+			// --- DEBUG MODAL ---
+			const debugModal = document.createElement("div");
+			debugModal.style.position = "fixed";
+			debugModal.style.bottom = "16px";
+			debugModal.style.right = "16px";
+			debugModal.style.background = "rgba(30,30,40,0.95)";
+			debugModal.style.color = "#fff";
+			debugModal.style.font = "12px/1.5 monospace";
+			debugModal.style.padding = "12px 16px";
+			debugModal.style.borderRadius = "8px";
+			debugModal.style.zIndex = "9999";
+			debugModal.style.pointerEvents = "none";
+			debugModal.style.opacity = 0.5;
+			debugModal.style.width = "640px";
+			debugModal.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+			debugModal.style.whiteSpace = "pre";
+			debugModal.innerText = "Debug info";
+			document.body.appendChild(debugModal);
 
-		function renderDebugModal() {
-			debugModal.innerText =
-				`currentIndex: ${currentIndex}\n` +
-				`snapPoints_open: [${snapPoints_open?.join(", ")}]\n` +
-				`snapPoints_closed: [${snapPoints_closed?.join(", ")}]\n` +
-				`bounds_open: ${JSON.stringify(bounds_open)}\n` +
-				`bounds_closed: ${JSON.stringify(bounds_closed)}\n` +
-				`progress: ${progress?.toFixed(3)}\n` +
-				`currentX: ${drag?.x?.toFixed(2)}\n` +
-				`isMobile: ${isMobile}\n` +
-				`openCardIndex: ${openCardIndex}\n` +
-				`expandedWidth: ${expandedWidth}\n` +
-				`collapsedWidth: ${collapsedWidth}\n` +
-				`containerWidth: ${container?.offsetWidth}\n` +
-				`isAnyModalOpen: ${isAnyModalOpen}`;
-			requestAnimationFrame(renderDebugModal);
+			function renderDebugModal() {
+				debugModal.innerText =
+					`currentIndex: ${currentIndex}\n` +
+					`snapPoints_open: [${snapPoints_open?.join(", ")}]\n` +
+					`snapPoints_closed: [${snapPoints_closed?.join(", ")}]\n` +
+					`bounds_open: ${JSON.stringify(bounds_open)}\n` +
+					`bounds_closed: ${JSON.stringify(bounds_closed)}\n` +
+					`progress: ${progress?.toFixed(3)}\n` +
+					`currentX: ${drag?.x?.toFixed(2)}\n` +
+					`isMobile: ${isMobile}\n` +
+					`openCardIndex: ${openCardIndex}\n` +
+					`expandedWidth: ${expandedWidth}\n` +
+					`collapsedWidth: ${collapsedWidth}\n` +
+					`containerWidth: ${container?.offsetWidth}\n` +
+					`isAnyModalOpen: ${isAnyModalOpen}`;
+				requestAnimationFrame(renderDebugModal);
+			}
+
+			// Start the live debug modal
+			renderDebugModal();
 		}
 
-		// Start the live debug modal
-		// renderDebugModal();
+		// debugModal();
 	};
 
 	tyx.functions.faqRichResults();
