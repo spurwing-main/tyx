@@ -683,4 +683,4 @@ function renderDebugModal() {
 }
 
 // Start the live debug modal
-renderDebugModal();
+// renderDebugModal();
