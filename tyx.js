@@ -2789,18 +2789,20 @@ function main() {
 		}
 
 		function updateTotalWidths() {
-			// totalWidth_closed = Array.from(cards).reduce((sum, card, idx) => {
-			// 	return sum + card.offsetWidth + (idx < cards.length - 1 ? gap : 0);
-			// }, 0);
+			// on desktop we calculate total widths based on CSS variables
+			if (!isMobile) {
+				// recalc collapsedWidth
+				collapsedWidth = getRemVarInPx(collapsedWidthVar);
 
-			// recalc collapsedWidth
-			collapsedWidth = getRemVarInPx(collapsedWidthVar);
-
-			// total width closed
-			totalWidth_closed = cards.length * collapsedWidth + gap * (cards.length - 1);
-
-			// total width open
-			totalWidth_open = totalWidth_closed + (getExpandedWidth() - collapsedWidth);
+				totalWidth_closed = cards.length * collapsedWidth + gap * (cards.length - 1);
+				totalWidth_open = totalWidth_closed + (getExpandedWidth() - collapsedWidth);
+			} else {
+				// on mobile we calculate total widths based on actual card widths
+				totalWidth_closed = Array.from(cards).reduce((sum, card, idx) => {
+					return sum + card.offsetWidth + (idx < cards.length - 1 ? gap : 0);
+				}, 0);
+				totalWidth_open = totalWidth_closed;
+			}
 		}
 
 		// Generate draggable bounds
@@ -3125,7 +3127,7 @@ function main() {
 			debugModal.style.zIndex = "9999";
 			debugModal.style.pointerEvents = "none";
 			debugModal.style.opacity = 0.5;
-			debugModal.style.width = "640px";
+			debugModal.style.width = "600px";
 			debugModal.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
 			debugModal.style.whiteSpace = "pre";
 			debugModal.innerText = "Debug info";

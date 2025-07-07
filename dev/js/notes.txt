@@ -1,0 +1,20 @@
+updateTotalWidths
+- updates values of totalWidth_closed and totalWidth_open
+- called at start and on resize
+
+generateBounds(expanded = false)
+- if expanded, bounds defined by totalWidth_open
+- if not expanded, bounds defined by totalWidth_closed
+
+updateSnapPoints
+- get left edge of each card, except last card which is going to be right edge
+- limit by bounds
+#Q - should snap points ever change except on resize? No EDIT - yes, there will be snap points for the expanded state, since the upper bound is higher
+#Q - do we need to separate last card if we are already limiting by bounds? No
+
+applyBounds
+- just applies bounds to the drag instance
+
+snapToIndex
+
+
