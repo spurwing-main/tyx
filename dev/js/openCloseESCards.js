@@ -10,11 +10,13 @@ const btnPrev = document.querySelector(".es_arrow.is-prev");
 const btnNext = document.querySelector(".es_arrow.is-next");
 const progressBar = document.querySelector(".es_progress-bar");
 const gap = 32;
-let myDraggableInstance;
+let drag;
 let currentIndex = 0;
-let snapPoints,
-	expandedSnapPoints = [];
-let bounds = { minX: 0, maxX: 0 };
+let snapPoints_closed,
+	snapPoints_open = [];
+let expanded = false; // track if cards are expanded or not
+let openCardIndex = null;
+// let bounds = { minX: 0, maxX: 0 };
 let collapsedWidthVar = "--es--w-collapsed"; // CSS variable for collapsed width
 let expandedWidthVar = "--es--w-expanded"; // CSS variable for expanded width
 let expandedDetailWidthVar = "--es--detail-w-expanded"; // CSS variable for expanded detail width
@@ -26,6 +28,9 @@ let isMobile = window.matchMedia(mm_value).matches; // also updated on resize
 let progress = 0,
 	progressBarTL = initProgressBarTL(),
 	progressSetter = progressBarQuickSet();
+let totalWidth_closed,
+	totalWidth_open = 0; // store the total width of cards in closed and open states and update on resize
+let bounds_closed, bounds_open;
 
 const modals = Array.from(document.querySelectorAll(".es-modal"));
 const modalOpenDuration = 0.5; // duration for modal open/close animations
@@ -39,18 +44,18 @@ function updateSliderState() {
 		list.setAttribute("es-progress", "start");
 	}
 	// if slider in progress but not at end
-	else if (currentIndex < snapPoints.length - 1) {
+	else if (currentIndex < snapPoints_closed.length - 1) {
 		list.setAttribute("es-progress", "incomplete");
 	}
 	// if slider at last card
-	else if (currentIndex == snapPoints.length - 1) {
+	else if (currentIndex == snapPoints_closed.length - 1) {
 		list.setAttribute("es-progress", "end");
 	}
 }
 
 function updateProgressBar() {
 	// update progress from GSAP Draggable
-	progress = myDraggableInstance.x / myDraggableInstance.minX;
+	progress = drag.x / drag.minX;
 
 	// round progress to 0 or 1 if we are very close
 	if (Math.abs(progress) < 0.01) {
@@ -107,36 +112,42 @@ function openCloseESCards() {
 
 		// snap card when timeline starts
 		tl.eventCallback("onStart", () => {
-			generateBounds(true);
-			applyBounds(myDraggableInstance, bounds);
-			// updateSnapPoints();
+			openCardIndex = idx; // store the index of the currently opening card
+			// update bounds to open state
+			updateBounds(true);
+
+			// update expanded state
+			expanded = true;
+
 			// if we are on last card and this card is not already expanded, recalculate bounds and snap to RH edge
 			if (idx === cards.length - 1 && card.classList.contains("is-open")) {
-				// generateAndApplyBounds(true); // recalc bounds with expanded width
 				gsap.to(list, {
-					x: myDraggableInstance.minX, // snap to the left edge
+					x: drag.minX, // snap to the left edge
 					duration: 0.5,
 					ease: "power2.inOut",
 					onUpdate: () => {
-						myDraggableInstance.update();
+						drag.update();
 					},
 				});
 			} else {
-				snapToIndex(idx);
+				snapToIndex(idx, snapPoints_open);
 			}
 		});
 
 		// when expansion finishes → recalc bounds & snap this card to left edge
 		tl.eventCallback("onComplete", () => {
-			generateBounds(true);
-			applyBounds(myDraggableInstance, bounds);
-			updateSnapPoints();
 			card.classList.remove("is-opening", "is-closing");
 		});
 		tl.eventCallback("onReverseComplete", () => {
-			generateBounds(false);
-			applyBounds(myDraggableInstance, bounds);
-			updateSnapPoints();
+			if (openCardIndex !== null && openCardIndex === idx) {
+				// only collapse bounds when no other card is open or opening
+				console.log("Collapsing bounds");
+				updateBounds(false);
+				// update expanded state
+				expanded = false;
+				openCardIndex = null; // reset the open card index
+			}
+
 			card.classList.remove("is-opening", "is-closing");
 		});
 
@@ -311,74 +322,76 @@ function closeAllModals() {
 	});
 }
 
-// Generate draggable bounds based on total cards width
-function generateBounds(expanded = false) {
-	let totalWidth = Array.from(cards).reduce((sum, card, idx) => {
-		return sum + card.offsetWidth + (idx < cards.length - 1 ? gap : 0);
-	}, 0);
+function updateTotalWidths() {
+	// totalWidth_closed = Array.from(cards).reduce((sum, card, idx) => {
+	// 	return sum + card.offsetWidth + (idx < cards.length - 1 ? gap : 0);
+	// }, 0);
 
-	if (expanded) {
-		// get the values in pixels of the collapsed and expanded widths
-		collapsedWidth = getRemVarInPx(collapsedWidthVar);
-		expandedWidth = getExpandedWidth();
+	// recalc collapsedWidth
+	collapsedWidth = getRemVarInPx(collapsedWidthVar);
 
-		// if expanded, we need to account for the expanded width of 1 card, so just add on the difference to totalWidth
-		totalWidth = totalWidth + (expandedWidth - collapsedWidth);
-	}
+	// total width closed
+	totalWidth_closed = cards.length * collapsedWidth + gap * (cards.length - 1);
 
+	// total width open
+	totalWidth_open = totalWidth_closed + (getExpandedWidth() - collapsedWidth);
+}
+
+// Generate draggable bounds
+function generateBounds() {
 	if (!container) {
 		const result = { minX: 0, maxX: 0 };
 		bounds = result;
 		return result;
 	}
-
 	const containerWidth = container.offsetWidth;
-	// minX should never be positive
-	const result = { minX: Math.min(containerWidth - totalWidth, 0), maxX: 0 };
-	bounds = result;
-	return result;
+
+	// generate closed bounds
+	bounds_closed = { minX: Math.min(containerWidth - totalWidth_closed, 0), maxX: 0 };
+	// generate open bounds
+	bounds_open = { minX: Math.min(containerWidth - totalWidth_open, 0), maxX: 0 };
 }
 
-function updateSnapPoints() {
-	// const { minX, maxX } = generateBounds(expanded);
-	const points = cards.map((card, i) => {
-		// natural snap = align this card’s left edge
-		let pt = Math.round(-card.offsetLeft);
-		// last card → force flush‐right
-		if (i === cards.length - 1) {
-			pt = bounds.minX;
-		}
-		// clamp into [minX…maxX] so it never lies outside
-		return Math.min(Math.max(pt, bounds.minX), bounds.maxX);
-	});
+// Expand or collapse bounds
+function updateBounds(expanded = false) {
+	if (expanded) {
+		bounds = bounds_open;
+	} else {
+		bounds = bounds_closed;
+	}
 
-	// remove duplicates
-	// snapPoints = points.filter((pt, idx) => points.indexOf(pt) === idx);
-	snapPoints = points;
+	drag.applyBounds(bounds);
+}
+
+function generateSnapPoints() {
+	snapPoints_closed = cards.map((card, i) => {
+		let pt = Math.round(-card.offsetLeft);
+		// clamp into [minX…maxX] so it never lies outside
+		return Math.min(Math.max(pt, bounds_closed.minX), bounds_closed.maxX);
+	});
+	snapPoints_open = cards.map((card, i) => {
+		let pt = Math.round(-card.offsetLeft);
+		return Math.min(Math.max(pt, bounds_open.minX), bounds_open.maxX);
+	});
 }
 
 // update drag instance with new bounds
-function applyBounds(drag, updatedBounds) {
-	if (!drag) return;
-	drag.applyBounds(updatedBounds);
-}
+// function applyBounds(drag, updatedBounds) {
+// 	if (!drag) return;
+// 	drag.applyBounds(updatedBounds);
+// }
 
 // animate the list to the given card index
-function snapToIndex(idx) {
+function snapToIndex(idx, snapPoints = snapPoints_closed) {
 	console.log(idx);
-	// as the last two or three cards have the same snap points and we have already deduped snapPoints, we need to grab the last snapPoint if idx is beyond arr length
 	let target = snapPoints[idx];
-
-	// // clamp to bounds
-	// const b = generateBounds(false);
-	// target = Math.max(Math.min(target, b.maxX), b.minX);
 
 	gsap.to(list, {
 		x: target,
 		duration: 0.5,
 		ease: "power2.inOut",
 		onUpdate: () => {
-			myDraggableInstance.update();
+			drag.update();
 
 			updateProgressBar();
 		},
@@ -391,8 +404,8 @@ function snapToIndex(idx) {
 }
 
 // Initialize the GSAP Draggable slider
-function makeSliderDraggable() {
-	const drag = Draggable.create(list, {
+function initialiseDraggable() {
+	drag = Draggable.create(list, {
 		type: "x",
 		bounds: { minX: 0, maxX: 0 }, // temporary initial bounds
 		inertia: true,
@@ -405,12 +418,13 @@ function makeSliderDraggable() {
 	})[0];
 
 	// Apply correct initial bounds
-	const initialBounds = generateBounds();
-	applyBounds(drag, initialBounds);
+	updateTotalWidths();
+	generateBounds();
+	updateBounds(false); // start with closed bounds
+	generateSnapPoints();
 	if (logging) {
 		console.log("Initial bounds:", drag.minX, drag.maxX);
 	}
-	return drag;
 }
 
 function dragUpdateHandler() {
@@ -426,29 +440,35 @@ function dragEndHandler() {
 	updateProgressBar();
 }
 
-function refreshBounds(drag, expanded = false) {
-	// 1) compute bounds
-	const { minX, maxX } = generateBounds(expanded);
+// function refreshBounds(drag, expanded = false) {
+// 	// const { minX, maxX } = generateBounds();
 
-	// 2) apply them
-	drag.applyBounds({ minX, maxX });
+// 	drag.applyBounds({ minX, maxX });
 
-	// 3) rebuild snapPoints
-	snapPoints = cards.map((card, i) => {
-		let pt = -card.offsetLeft;
-		if (i === cards.length - 1) pt = minX; // last card stays flush‐right
-		return Math.min(Math.max(pt, minX), maxX);
-	});
+// 	// 3) rebuild snapPoints
+// 	snapPoints = cards.map((card, i) => {
+// 		let pt = -card.offsetLeft;
+// 		if (i === cards.length - 1) pt = minX; // last card stays flush‐right
+// 		return Math.min(Math.max(pt, minX), maxX);
+// 	});
 
-	return { minX, maxX };
-}
+// 	return { minX, maxX };
+// }
 function getCurrentIndex() {
-	const currentX = myDraggableInstance.x; // Get the current x position of the slider
+	const currentX = drag.x; // Get the current x position of the slider
 	let closestIndex = 0;
 	let closestDistance = Infinity;
-	if (logging) {
-		console.log(snapPoints);
+	// if (logging) {
+	// 	console.log(snapPoints);
+	// }
+
+	// Determine which snap points to use based on expanded state
+	if (expanded) {
+		snapPoints = snapPoints_open;
+	} else {
+		snapPoints = snapPoints_closed;
 	}
+	// Find the closest snap point to the current x position
 	snapPoints.forEach((snapPoint, index) => {
 		const distance = Math.abs(currentX - snapPoint);
 		if (distance < closestDistance) {
@@ -474,13 +494,10 @@ btnPrev.addEventListener("click", () => {
 		reverse(openCard);
 	}
 
-	// regenerate bounds and snap points
-	const b = generateBounds(false);
-	applyBounds(myDraggableInstance, b);
-	// updateSnapPoints();
+	updateBounds(false); // ensure we are in closed state
 
 	if (currentIndex > 0) {
-		snapToIndex(currentIndex - 1);
+		snapToIndex(currentIndex - 1, snapPoints_closed);
 		if (logging) {
 			console.log("Snapping to previous index:", currentIndex);
 		}
@@ -499,12 +516,10 @@ btnNext.addEventListener("click", () => {
 		reverse(openCard);
 	}
 
-	// regenerate bounds and snap points
-	const b = generateBounds(false);
-	applyBounds(myDraggableInstance, b);
-	// updateSnapPoints();
-	if (currentIndex < snapPoints.length - 1) {
-		snapToIndex(currentIndex + 1); // NB snapToIndex also updates currentIndex
+	updateBounds(false); // ensure we are in closed state
+
+	if (currentIndex < snapPoints_closed.length - 1) {
+		snapToIndex(currentIndex + 1, snapPoints_closed); // NB snapToIndex also updates currentIndex
 		if (logging) {
 			console.log("Snapping to next index:", currentIndex);
 		}
@@ -544,13 +559,15 @@ function onResize() {
 	});
 
 	// recalc bounds & snap back to the current index
+	updateTotalWidths();
 	generateBounds();
-	applyBounds(myDraggableInstance, bounds);
-	// generateAndapplyBounds(myDraggableInstance);
-	updateSnapPoints();
-	snapToIndex(currentIndex);
+	updateBounds(false); // start with closed bounds
+	generateSnapPoints();
+	snapToIndex(currentIndex, snapPoints_closed);
 	updateSliderState();
 	updateProgressBar();
+	openCardIndex = null; // reset the open card index
+	expanded = false; // reset expanded state
 }
 
 function setAllBgSizes() {
@@ -617,8 +634,7 @@ function init() {
 	gsap.registerPlugin(Draggable);
 	openCloseESCards();
 	setAllBgSizes();
-	myDraggableInstance = makeSliderDraggable();
-	updateSnapPoints();
+	initialiseDraggable();
 	window.addEventListener("resize", onResizeDebounced);
 	initialiseModals();
 	patchDetailBg();
@@ -628,3 +644,43 @@ function init() {
 }
 
 init();
+
+// --- DEBUG MODAL ---
+const debugModal = document.createElement("div");
+debugModal.style.position = "fixed";
+debugModal.style.bottom = "16px";
+debugModal.style.right = "16px";
+debugModal.style.background = "rgba(30,30,40,0.95)";
+debugModal.style.color = "#fff";
+debugModal.style.font = "12px/1.5 monospace";
+debugModal.style.padding = "12px 16px";
+debugModal.style.borderRadius = "8px";
+debugModal.style.zIndex = "9999";
+debugModal.style.pointerEvents = "none";
+debugModal.style.opacity = 0.5;
+debugModal.style.width = "640px";
+debugModal.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+debugModal.style.whiteSpace = "pre";
+debugModal.innerText = "Debug info";
+document.body.appendChild(debugModal);
+
+function renderDebugModal() {
+	debugModal.innerText =
+		`currentIndex: ${currentIndex}\n` +
+		`snapPoints_open: [${snapPoints_open?.join(", ")}]\n` +
+		`snapPoints_closed: [${snapPoints_closed?.join(", ")}]\n` +
+		`bounds_open: ${JSON.stringify(bounds_open)}\n` +
+		`bounds_closed: ${JSON.stringify(bounds_closed)}\n` +
+		`progress: ${progress?.toFixed(3)}\n` +
+		`currentX: ${drag?.x?.toFixed(2)}\n` +
+		`isMobile: ${isMobile}\n` +
+		`openCardIndex: ${openCardIndex}\n` +
+		`expandedWidth: ${expandedWidth}\n` +
+		`collapsedWidth: ${collapsedWidth}\n` +
+		`containerWidth: ${container?.offsetWidth}\n` +
+		`isAnyModalOpen: ${isAnyModalOpen}`;
+	requestAnimationFrame(renderDebugModal);
+}
+
+// Start the live debug modal
+renderDebugModal();
