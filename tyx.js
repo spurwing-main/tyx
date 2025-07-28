@@ -693,53 +693,6 @@ function main() {
 		});
 	};
 
-	tyx.functions.magicCarousel = function () {
-		var check = document.querySelector(".s-magic-carousel .splide");
-		if (!check) return;
-
-		var splide = new Splide(".s-magic-carousel .splide", {
-			type: "slide",
-			mediaQuery: "min",
-			autoWidth: true,
-			autoplay: false,
-			arrows: true,
-			trimSpace: "move",
-			pagination: false,
-		});
-
-		var bar = splide.root.querySelector(".progress_bar");
-		var prevArrow = splide.root.querySelector(".splide__arrow--prev");
-		var nextArrow = splide.root.querySelector(".splide__arrow--next");
-
-		splide.on("mounted move", function () {
-			// Progress bar logic
-			if (bar) {
-				var end = splide.Components.Controller.getEnd() + 1;
-				var rate = Math.min((splide.index + 1) / end, 1);
-				bar.style.width = String(100 * rate) + "%";
-			}
-
-			// Arrow disable logic
-			if (prevArrow) {
-				if (splide.index === 0) {
-					prevArrow.classList.add("is-inactive");
-				} else {
-					prevArrow.classList.remove("is-inactive");
-				}
-			}
-
-			if (nextArrow) {
-				if (splide.index === splide.Components.Controller.getEnd()) {
-					nextArrow.classList.add("is-inactive");
-				} else {
-					nextArrow.classList.remove("is-inactive");
-				}
-			}
-		});
-
-		splide.mount();
-	};
-
 	tyx.functions.counter = function () {
 		// create a custom effect for the counter
 		gsap.registerEffect({
@@ -870,35 +823,6 @@ function main() {
 
 		/* wait for Splide to finish mounting, then track every move */
 		splide.on("mounted move", update);
-	};
-
-	tyx.functions.magicCarousel = function () {
-		const node = document.querySelector(".s-magic-carousel .splide");
-		if (!node) return;
-
-		const splide = new Splide(node, {
-			type: "slide",
-			mediaQuery: "min",
-			autoWidth: true,
-			arrows: true,
-			trimSpace: "move",
-			pagination: false,
-		});
-
-		/* add this ↓↓↓ */
-		tyx.helperFunctions.splideArrows(splide);
-
-		/* keep your progress-bar logic if you still need it */
-		const bar = splide.root.querySelector(".progress_bar");
-		if (bar) {
-			splide.on("mounted move", () => {
-				const end = splide.Components.Controller.getEnd() + 1;
-				const rate = Math.min((splide.index + 1) / end, 1);
-				bar.style.width = `${rate * 100}%`;
-			});
-		}
-
-		splide.mount();
 	};
 
 	tyx.functions.serviceCard = function () {
@@ -3180,7 +3104,6 @@ function main() {
 	tyx.functions.visualiser();
 	tyx.functions.faq();
 	tyx.functions.testimonials();
-	tyx.functions.magicCarousel();
 	tyx.functions.largeSlider();
 	tyx.functions.teamSlider();
 	tyx.functions.fancyHero_v2();
