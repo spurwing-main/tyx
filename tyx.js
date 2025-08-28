@@ -37,8 +37,10 @@ function main() {
 
 	tyx.functions.mapbox = function () {
 		// Set your Mapbox access token
+		// mapboxgl.accessToken =
+		// 	"pk.eyJ1Ijoic3B1cndpbmctc3AiLCJhIjoiY21jOTl0ZmxjMDc5OTJrczlpdHFkNnRnMyJ9.dKXTGojiPxqQbVxTq2L0eg";
 		mapboxgl.accessToken =
-			"pk.eyJ1Ijoic3B1cndpbmctc3AiLCJhIjoiY21jOTl0ZmxjMDc5OTJrczlpdHFkNnRnMyJ9.dKXTGojiPxqQbVxTq2L0eg";
+			"pk.eyJ1IjoidG9tdHl4c3R1ZGlvcyIsImEiOiJjbWV2Z3NtMnEwYnpoMmtxeHcwY2hpNnloIn0.5w4TaMJSUModvEhLqG_ZbQ";
 
 		// Find all map components on the page
 		const mapComponents = document.querySelectorAll(".map");
@@ -53,7 +55,7 @@ function main() {
 
 			const map = new mapboxgl.Map({
 				container: mapContainer,
-				style: "mapbox://styles/spurwing-sp/cmc99cxxj008j01sh73j11qbt",
+				style: "mapbox://styles/tomtyxstudios/cmevgy1qm007201sc8jjr9kmu",
 				center: [lng, lat],
 				zoom: 15,
 			});
