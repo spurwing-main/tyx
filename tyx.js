@@ -611,11 +611,11 @@ function main() {
 		let mm = gsap.matchMedia();
 
 		mm.add("(min-width: 768px)", () => {
-			let items = gsap.utils.toArray(".benefits_list"); // get all the lists of benefit cards
+			let sections = gsap.utils.toArray(".s-benefits"); // get all benefit sections
 
-			items.forEach((container, i) => {
-				const section = document.querySelector(".s-benefits");
-				if (!section) return;
+			sections.forEach((section, sectionIndex) => {
+				const container = section.querySelector(".benefits_list");
+				if (!container) return;
 
 				let localItems = container.querySelectorAll(".benefit-card"),
 					distance = () => {
@@ -627,17 +627,17 @@ function main() {
 				let containerSelector = gsap.utils.selector(container);
 				let bgs = containerSelector(".benefit-card_bg");
 
-				// let dist = distance(); // store the distance so it's available for both animations
-
-				// Set up the ScrollTrigger separately so we can share it
+				// Set up the ScrollTrigger with proper section scoping
 				let scrollTrigger = {
 					trigger: container,
 					start: "center center",
-					pinnedContainer: section,
 					end: () => "+=" + distance(),
-					pin: section,
+					pin: section, // pin the current section, not the first one
 					scrub: true,
 					invalidateOnRefresh: true,
+					anticipatePin: 1,
+					pinSpacing: true,
+					id: `benefits-${sectionIndex}`, // unique ID for debugging
 				};
 
 				const tl = gsap.timeline({
@@ -662,13 +662,20 @@ function main() {
 			});
 
 			return () => {
-				gsap.set(items, { clearProps: "x" });
+				gsap.set(".benefits_list", { clearProps: "x" });
 			};
 		});
 
 		mm.add("(max-width: 767px)", () => {
-			if (!splide) {
-				var splide = new Splide(".s-benefits .splide", {
+			let splideInstances = []; // array to store multiple splide instances
+
+			const benefitSections = document.querySelectorAll(".s-benefits");
+
+			benefitSections.forEach((section, index) => {
+				const splideElement = section.querySelector(".splide");
+				if (!splideElement) return;
+
+				const splide = new Splide(splideElement, {
 					type: "slide",
 					mediaQuery: "min",
 					autoplay: false,
@@ -684,13 +691,16 @@ function main() {
 				});
 
 				splide.mount();
-			}
+				splideInstances.push(splide);
+			});
 
 			return () => {
-				if (splide) {
-					splide.destroy();
-					splide = null;
-				}
+				splideInstances.forEach((splide) => {
+					if (splide) {
+						splide.destroy();
+					}
+				});
+				splideInstances = [];
 			};
 		});
 	};
