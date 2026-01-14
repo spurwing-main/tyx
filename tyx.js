@@ -3039,6 +3039,9 @@ function main() {
 			openCloseESCards();
 			setAllBgSizes();
 			initialiseDraggable();
+			if (!isMobile && cards.length > 0) {
+				play(cards[0]);
+			}
 			window.addEventListener("resize", onResizeDebounced);
 			initialiseModals();
 			patchDetailBg();
@@ -3094,6 +3097,251 @@ function main() {
 		// debugModal();
 	};
 
+	tyx.functions.glowHover = function () {
+		// Masked overlay approach (similar to the React example):
+		// - Keep your real cards as-is
+		// - Add an overlay layer containing positioned glow boxes
+		// - Reveal the overlay with a radial mask that follows the pointer
+		const wraps = Array.from(document.querySelectorAll(".glow-hover-wrap"));
+		if (!wraps.length) return;
+
+		const prefersReducedMotion = (() => {
+			try {
+				return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+			} catch {
+				return false;
+			}
+		})();
+
+		// Inject CSS once
+		if (!document.getElementById("tyx-glow-hover-overlay-css")) {
+			const style = document.createElement("style");
+			style.id = "tyx-glow-hover-overlay-css";
+			style.textContent = `
+/* Glow Hover Overlay (tyx) */
+.glow-hover-wrap[data-glow-overlay="1"] { position: relative; }
+.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  user-select: none;
+  opacity: var(--glow-opacity, 0);
+  transition: opacity 400ms ease;
+  will-change: mask-image, -webkit-mask-image, opacity;
+  z-index: 999; /* above card content */
+  -webkit-mask-image: radial-gradient(var(--glow-mask-size, 400px) var(--glow-mask-size, 400px) at var(--glow-x, 0px) var(--glow-y, 0px), #000 1%, transparent 55%);
+  mask-image: radial-gradient(var(--glow-mask-size, 400px) var(--glow-mask-size, 400px) at var(--glow-x, 0px) var(--glow-y, 0px), #000 1%, transparent 55%);
+}
+.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item {
+  position: absolute;
+  border-radius: inherit;
+	border: 1px solid var(--glow-color, var(--color-brand, #5050e0));
+  box-shadow:
+		0 0 0 1px inset var(--glow-color, var(--color-brand, #5050e0)),
+		0 0 34px color-mix(in oklch, var(--glow-color, var(--color-brand, #5050e0)), transparent 72%);
+	background: color-mix(in oklch, var(--glow-color, var(--color-brand, #5050e0)), transparent 84%);
+	filter: saturate(1.05);
+  will-change: transform;
+}
+
+/* Blurred "blob" layer (matches bg-blur vibe) */
+.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item::before {
+	content: "";
+	position: absolute;
+	inset: -40%;
+	border-radius: 999px;
+	background-image: radial-gradient(
+		circle farthest-corner at 50% 50%,
+		var(--glow-blur-from, var(--_color---blue--dark, #5050e0)),
+		var(--glow-blur-to, var(--_color---blue--mid, rgba(80,80,224,0)))
+	);
+	opacity: var(--glow-blur-opacity, 0.55);
+	filter: blur(var(--glow-blur, 26px));
+	transform: translateZ(0);
+}
+
+/* Fallback for browsers without color-mix */
+@supports not (background: color-mix(in oklch, white, black)) {
+  .glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item {
+		box-shadow: 0 0 0 1px inset rgba(80,80,224,0.85), 0 0 34px rgba(80,80,224,0.28);
+		background: rgba(80,80,224,0.14);
+		border-color: rgba(80,80,224,0.85);
+  }
+
+	.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item::before {
+		opacity: 0.55;
+		filter: blur(26px);
+		background-image: radial-gradient(circle farthest-corner at 50% 50%, rgba(80,80,224,0.95), rgba(80,80,224,0));
+	}
+}
+
+/* Disable the old per-card gradient hover when overlay mode is enabled */
+.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-item::before,
+.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-item::after,
+.glow-hover-wrap[data-glow-overlay="1"]:hover > .glow-hover-item::after,
+.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-item:hover::before {
+  opacity: 0 !important;
+}
+`;
+			document.head.appendChild(style);
+		}
+
+		function initWrap(wrap) {
+			if (prefersReducedMotion) return;
+			wrap.dataset.glowOverlay = "1";
+
+			const computedPos = window.getComputedStyle(wrap).position;
+			if (computedPos === "static") {
+				wrap.style.position = "relative";
+			}
+
+			const cards = Array.from(wrap.getElementsByClassName("glow-hover-item"));
+			if (!cards.length) return;
+
+			let overlay = wrap.querySelector(":scope > .glow-hover-overlay");
+			if (!overlay) {
+				overlay = document.createElement("div");
+				overlay.className = "glow-hover-overlay";
+				overlay.setAttribute("aria-hidden", "true");
+				wrap.appendChild(overlay);
+			}
+
+			let overlayItems = Array.from(overlay.children);
+			function ensureOverlayItems() {
+				// Keep 1 overlay item per card
+				while (overlayItems.length < cards.length) {
+					const item = document.createElement("div");
+					item.className = "glow-hover-overlay-item";
+					overlay.appendChild(item);
+					overlayItems.push(item);
+				}
+				while (overlayItems.length > cards.length) {
+					const el = overlayItems.pop();
+					el?.remove();
+				}
+			}
+
+			ensureOverlayItems();
+
+			let lastClientX = 0;
+			let lastClientY = 0;
+			let rafId = 0;
+			let isActive = false;
+			let needsSync = true;
+			let wrapRect;
+			let cardRects = [];
+
+			function syncOverlayBounds() {
+				wrapRect = wrap.getBoundingClientRect();
+				cardRects = cards.map((card) => card.getBoundingClientRect());
+
+				for (let i = 0; i < cards.length; i++) {
+					const card = cards[i];
+					const r = cardRects[i];
+					const item = overlayItems[i];
+					if (!item) continue;
+
+					const left = r.left - wrapRect.left;
+					const top = r.top - wrapRect.top;
+					item.style.left = `${left}px`;
+					item.style.top = `${top}px`;
+					item.style.width = `${r.width}px`;
+					item.style.height = `${r.height}px`;
+					item.style.borderRadius = window.getComputedStyle(card).borderRadius;
+
+					// Optional per-card theming via data attribute (e.g. data-glow-color="hsla(210, 90%, 60%, 1)")
+					const glowColor = card.getAttribute("data-glow-color");
+					if (glowColor) item.style.setProperty("--glow-color", glowColor);
+				}
+
+				needsSync = false;
+			}
+
+			function render() {
+				rafId = 0;
+				if (!isActive) return;
+				if (needsSync) syncOverlayBounds();
+
+				// Pointer position relative to wrap
+				const x = lastClientX - wrapRect.left;
+				const y = lastClientY - wrapRect.top;
+				overlay.style.setProperty("--glow-x", `${x}px`);
+				overlay.style.setProperty("--glow-y", `${y}px`);
+			}
+
+			function scheduleRender() {
+				if (rafId) return;
+				rafId = requestAnimationFrame(render);
+			}
+
+			function onPointerMove(e) {
+				if (!isActive) return;
+				lastClientX = e.clientX;
+				lastClientY = e.clientY;
+				scheduleRender();
+			}
+
+			function onEnter(e) {
+				isActive = true;
+				lastClientX = e.clientX;
+				lastClientY = e.clientY;
+				needsSync = true;
+				overlay.style.setProperty("--glow-opacity", "1");
+				scheduleRender();
+			}
+
+			function onLeave() {
+				isActive = false;
+				overlay.style.setProperty("--glow-opacity", "0");
+				if (rafId) {
+					cancelAnimationFrame(rafId);
+					rafId = 0;
+				}
+			}
+
+			wrap.addEventListener("pointerenter", onEnter, { passive: true });
+			wrap.addEventListener("pointerleave", onLeave, { passive: true });
+			wrap.addEventListener("pointermove", onPointerMove, { passive: true });
+
+			const onViewportChange = () => {
+				needsSync = true;
+				if (isActive) scheduleRender();
+			};
+
+			window.addEventListener("resize", onViewportChange, { passive: true });
+			window.addEventListener("scroll", onViewportChange, { passive: true });
+
+			if ("ResizeObserver" in window) {
+				const ro = new ResizeObserver(() => {
+					needsSync = true;
+					if (isActive) scheduleRender();
+				});
+				ro.observe(wrap);
+				cards.forEach((card) => ro.observe(card));
+			}
+
+			if ("MutationObserver" in window) {
+				const mo = new MutationObserver(() => {
+					// Cards may have been added/removed
+					const nextCards = Array.from(wrap.getElementsByClassName("glow-hover-item"));
+					if (nextCards.length !== cards.length) {
+						cards.length = 0;
+						cards.push(...nextCards);
+						ensureOverlayItems();
+					}
+					needsSync = true;
+					if (isActive) scheduleRender();
+				});
+				mo.observe(wrap, { childList: true, subtree: true, attributes: true });
+			}
+
+			// Initial sync so overlay doesn't pop on first move
+			syncOverlayBounds();
+		}
+
+		wraps.forEach(initWrap);
+	};
+
 	tyx.functions.faqRichResults();
 
 	tyx.functions.pricing();
@@ -3122,6 +3370,7 @@ function main() {
 	tyx.functions.nav();
 	tyx.functions.magicModal();
 	tyx.functions.mapbox();
+	tyx.functions.glowHover();
 
 	// parallax functions need to be called at end once GSAP has moved things around, otherwise heights are off - especially benefits()
 	ScrollTrigger.refresh();
