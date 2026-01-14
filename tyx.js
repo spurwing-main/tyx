@@ -3144,22 +3144,6 @@ function main() {
   will-change: transform;
 }
 
-/* Blurred "blob" layer (matches bg-blur vibe) */
-.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item::before {
-	content: "";
-	position: absolute;
-	inset: -40%;
-	border-radius: 999px;
-	background-image: radial-gradient(
-		circle farthest-corner at 50% 50%,
-		var(--glow-blur-from, var(--_color---blue--dark, #5050e0)),
-		var(--glow-blur-to, var(--_color---blue--mid, rgba(80,80,224,0)))
-	);
-	opacity: var(--glow-blur-opacity, 0.55);
-	filter: blur(var(--glow-blur, 26px));
-	transform: translateZ(0);
-}
-
 /* Fallback for browsers without color-mix */
 @supports not (background: color-mix(in oklch, white, black)) {
   .glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item {
@@ -3167,12 +3151,6 @@ function main() {
 		background: rgba(80,80,224,0.14);
 		border-color: rgba(80,80,224,0.85);
   }
-
-	.glow-hover-wrap[data-glow-overlay="1"] .glow-hover-overlay-item::before {
-		opacity: 0.55;
-		filter: blur(26px);
-		background-image: radial-gradient(circle farthest-corner at 50% 50%, rgba(80,80,224,0.95), rgba(80,80,224,0));
-	}
 }
 
 /* Disable the old per-card gradient hover when overlay mode is enabled */
